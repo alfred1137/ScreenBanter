@@ -1,0 +1,35 @@
+[project]
+name = "screenbanter"
+version = "0.1.0"
+description = "Make your screen talk back. A DIY project built with VIBES to bridge Google’s Gemini Vision with Microsoft’s VibeVoice-0.5B for real-time desktop narration."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [
+    { name = "Alfredo A. Hernandez", email = "alfredohernandez@example.com" }
+]
+dependencies = [
+    "google-generativeai",
+    "torch",
+    "uvicorn",
+    "fastapi",
+    "dxcam",
+    # "pyaudio", # Requires Microsoft Visual C++ Build Tools
+    # "pystray", # Also requires Visual C++ Build Tools, or has other native dependencies
+    "global_hotkeys",
+    "Nuitka",
+    "numpy",
+    "Pillow",
+    "requests",
+    "python-dotenv",
+    "huggingface-hub"
+]
+
+[project.optional-dependencies]
+dev = [
+    "black",
+    "ruff",
+    "mypy",
+    "pytest",
+    "pre-commit"
+]
