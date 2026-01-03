@@ -1,29 +1,24 @@
 # Active Context: ScreenBanter
 
-**Current Work Focus:** Transitioning from scaffolding to functional implementation and environment verification.
+**Current Work Focus:** Completed VibeVoice TTS model integration and GPU acceleration.
 
 **Recent Changes:**
-- Project infrastructure and documentation review completed.
-- Initial implementation skeletons created for all core components:
-    - `app/main.py`: Orchestrator and tray app.
-    - `app/capture.py`: DXcam screen capture.
-    - `app/vision.py`: Gemini OCR integration.
-    - `app/audio_client.py`: Async audio playback.
-    - `server/tts_server.py` & `model_loader.py`: FastAPI TTS backend.
-- Identified `third_party/VibeVoice` as the local repository for model logic.
-- Updated Memory Bank to reflect scaffolded state.
+- Implemented VibeVoice TTS model integration.
+- Configured environment for GPU (CUDA) acceleration.
+- Resolved various dependency and path issues for VibeVoice.
 
 **Next Steps:**
-1. **Environment Verification:** User needs to install Microsoft Visual C++ Build Tools to resolve native dependency issues for `pyaudio` and `pystray`.
-2. **Backend Validation:** Run and test the `server/tts_server.py` with the VibeVoice model to confirm CUDA acceleration and streaming performance.
-3. **Capture & Vision Loop:** Test the `DXcam` and Gemini integration to verify OCR accuracy and latency.
-4. **Asset Creation:** Add a placeholder `assets/icon.png` to satisfy application requirements.
+1.  **Backend Validation:** Complete testing of the `server/tts_server.py` with the VibeVoice model to confirm streaming performance.
+2.  **Capture & Vision Loop:** Test the `DXcam` and Gemini integration to verify OCR accuracy and latency.
+3.  **Asset Creation:** Add a placeholder `assets/icon.png` to satisfy application requirements.
+4.  **Cleanup**: Remove temporary files `check_cuda.py` and `test_tts_stream.py`.
 
 **Active Decisions and Considerations:**
-- **Native Dependencies:** `pyaudio` and `pystray` are currently the main blockers for a full `uv sync`.
-- **Latency Budget:** Every component must be profiled to ensure we stay within the ~1.1s total end-to-end target.
-- **VibeVoice Integration:** The code in `server/` assumes `vibevoice` package is available (either installed or in path).
+- **Native Dependencies:** Initial blocking `pyaudio` and `pystray` issues were bypassed by focusing on core TTS functionality. These will need to be addressed for full application functionality.
+- **Latency Budget:** Further profiling is needed to ensure the entire pipeline (capture -> OCR -> TTS -> playback) stays within the ~1.1s total end-to-end target.
+- **VibeVoice Integration Stability:** The current integration is functional, but robustness with varying inputs and edge cases needs further testing.
 
 **Learnings and Project Insights:**
-- The project documentation was robust enough to allow immediate scaffolding of all major components.
-- The use of `third_party/VibeVoice` suggests a modular approach to model integration, allowing for local improvements to the TTS logic.
+- `uv` environment management requires careful handling of editable installs and their dependencies, often necessitating manual `sys.path` modifications.
+- PyTorch CUDA detection can be tricky and requires verifying both PyTorch installation with CUDA wheels and proper CUDA driver setup on the system.
+- The iterative debugging process was crucial in identifying and resolving dependency chain issues and environment configuration.

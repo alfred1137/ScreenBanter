@@ -9,6 +9,12 @@ from typing import Iterator, Optional, Dict, Tuple
 from huggingface_hub import snapshot_download
 from dotenv import load_dotenv
 
+import sys
+import os
+
+# Add the VibeVoice repository to sys.path for editable installation
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "third_party", "VibeVoice")))
+
 # VibeVoice Imports
 try:
     from vibevoice.modular.modeling_vibevoice_streaming_inference import (
@@ -19,13 +25,17 @@ try:
     )
     from vibevoice.modular.streamer import AudioStreamer
     VIBEVOICE_AVAILABLE = True
-except ImportError:
+except ImportError as e:
+    print(f"DEBUG: ImportError for VibeVoice: {e}")
     VIBEVOICE_AVAILABLE = False
 
 # Load environment variables
 load_dotenv()
 
 SAMPLE_RATE = 24_000
+
+print(f"DEBUG: sys.path at startup: {sys.path}")
+print(f"DEBUG: VIBEVOICE_AVAILABLE: {VIBEVOICE_AVAILABLE}")
 
 class VibeVoiceManager:
     def __init__(self, model_id="microsoft/VibeVoice-Realtime-0.5B"):

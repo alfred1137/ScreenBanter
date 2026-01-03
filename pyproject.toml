@@ -6,11 +6,10 @@ readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
 authors = [
-    { name = "Alfredo A. Hernandez", email = "alfredohernandez@example.com" }
+    { name = "Alfred T", email = "" }
 ]
 dependencies = [
     "google-generativeai",
-    "torch",
     "uvicorn",
     "fastapi",
     "dxcam",

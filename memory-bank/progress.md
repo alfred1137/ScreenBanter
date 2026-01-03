@@ -1,30 +1,20 @@
 # Progress: ScreenBanter
 
-**Current Status:** Scaffolded implementation phase. Initial skeletons for all core components have been created.
+**Overall Status:** VibeVoice TTS model integrated with GPU acceleration.
 
-**What Works:**
-- High-level architecture and component breakdown are defined.
-- Project structure is scaffolded with implementation skeletons:
-    - `server/tts_server.py` & `model_loader.py`: FastAPI backend for TTS.
-    - `app/capture.py`: DXcam screen capture integration.
-    - `app/vision.py`: Gemini 2.0 Flash Lite OCR integration.
-    - `app/audio_client.py`: Asynchronous streaming audio playback.
-    - `app/main.py`: System tray daemon and hotkey orchestration.
-- `third_party/VibeVoice` repository is integrated for local model logic.
+**Completed:**
+- `pyproject.toml`: Added `huggingface-hub` and necessary VibeVoice dependencies.
+- `.env`: Configured `VIBEVOICE_MODEL_PATH`.
+- `server/model_loader.py`: Refactored to `VibeVoiceManager` for automated model download, GPU detection, and streamlined audio streaming with a default voice preset.
+- `server/tts_server.py`: Updated to utilize the `VibeVoiceManager` for its `/v1/audio/stream` endpoint.
+- **VibeVoice Repository**: Cloned `microsoft/VibeVoice` into `third_party/VibeVoice` and installed it in editable mode.
+- **GPU Setup**: Successfully debugged and ensured PyTorch detects and utilizes the NVIDIA GeForce RTX 3060 Ti GPU, by recreating virtual environment and reinstalling torch with CUDA support, and explicitly adding `third_party/VibeVoice` to `sys.path`.
 
-**What's Left to Build:**
-- **Phase 1: Backend Latency:** Implement full logic in VibeVoice FastAPI server and verify CUDA performance.
-- **Phase 2: Capture Speed:** Fine-tune DXcam capture loop and verify frame rates.
-- **Phase 3: Cloud Bridge:** Finalize Gemini 2.0 Flash Lite prompt engineering and response handling.
-- **Phase 4: Async Audio:** Refine the audio client buffer management to ensure smooth playback without jitter.
-- **Phase 5: Packaging:** Configure Nuitka build script for standalone executable generation.
+**Remaining:**
+- Complete testing of the `server/tts_server.py` with the VibeVoice model to confirm streaming performance (was interrupted).
+- Test the `DXcam` and Gemini integration to verify OCR accuracy and latency.
+- Add a placeholder `assets/icon.png` to satisfy application requirements.
+- Remove temporary files `check_cuda.py` and `test_tts_stream.py`.
 
-**Known Issues / Challenges (from README):**
-- Audio Client implementation for streaming chunks can be complex to ensure smooth playback.
-- Achieving target latency (~1.1s total) requires careful optimization of each component.
-- Windows 11 and CUDA GPU are hard requirements for optimal performance.
-
-**Evolution of Project Decisions:**
-- Initial decision to use DXcam and VibeVoice-0.5B for performance reasons.
-- Decision to use FastAPI for streaming TTS to minimize perceived latency.
-- Decision to use Nuitka for packaging for performance over PyInstaller.
+**Known Issues:**
+- The initial native dependency issues for `pyaudio` and `pystray` (commented out in `pyproject.toml`) still need to be addressed for full application functionality.
