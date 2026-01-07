@@ -4,16 +4,18 @@ import torch
 import numpy as np
 import threading
 import copy
+import traceback
 from pathlib import Path
-from typing import Iterator, Optional, Dict, Tuple
+from typing import Iterator, Optional, Dict, Tuple, Any, Callable, List
 from huggingface_hub import snapshot_download
 from dotenv import load_dotenv
 
 import sys
-import os
 
 # Add the VibeVoice repository to sys.path for editable installation
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "third_party", "VibeVoice")))
+VIBEVOICE_REPO_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "third_party", "VibeVoice"))
+if VIBEVOICE_REPO_PATH not in sys.path:
+    sys.path.insert(0, VIBEVOICE_REPO_PATH)
 
 # VibeVoice Imports
 try:
@@ -34,18 +36,24 @@ load_dotenv()
 
 SAMPLE_RATE = 24_000
 
-print(f"DEBUG: sys.path at startup: {sys.path}")
-print(f"DEBUG: VIBEVOICE_AVAILABLE: {VIBEVOICE_AVAILABLE}")
-
 class VibeVoiceManager:
+    """
+    Manages the VibeVoice TTS model, aligned with the official demo's StreamingTTSService.
+    """
     def __init__(self, model_id="microsoft/VibeVoice-Realtime-0.5B"):
         self.model_id = model_id
         self.model_path = os.getenv("VIBEVOICE_MODEL_PATH", "./models/VibeVoice-Realtime-0.5B")
+        self.inference_steps = 5
+        self.sample_rate = SAMPLE_RATE
+        
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        self._torch_device = torch.device(self.device)
+        
         self.processor: Optional[VibeVoiceStreamingProcessor] = None
         self.model: Optional[VibeVoiceStreamingForConditionalGenerationInference] = None
-        self.voice_preset: Optional[torch.Tensor] = None
-        self._torch_device = torch.device(self.device)
+        self.voice_presets: Dict[str, Path] = {}
+        self.default_voice_key: Optional[str] = None
+        self._voice_cache: Dict[str, Any] = {}
 
     def download_if_needed(self):
         if not os.path.exists(self.model_path) or not os.listdir(self.model_path):
@@ -56,15 +64,15 @@ class VibeVoiceManager:
 
     def load(self):
         if not VIBEVOICE_AVAILABLE:
-            print("❌ VibeVoice package not found. Please install it.")
+            print("❌ VibeVoice package not found. Please check sys.path and installation.")
             return False
 
         self.download_if_needed()
 
-        print(f"Loading VibeVoice processor from {self.model_path}...")
+        print(f"[startup] Loading processor from {self.model_path}")
         self.processor = VibeVoiceStreamingProcessor.from_pretrained(self.model_path)
 
-        # Decide dtype & attention
+        # Decide dtype & attention (Mirroring official demo logic)
         if self.device == "cuda":
             load_dtype = torch.bfloat16
             device_map = 'cuda'
@@ -77,7 +85,8 @@ class VibeVoiceManager:
             attn_impl = "sdpa"
             print("ℹ️ Running on CPU")
 
-        print(f"Loading VibeVoice model with dtype={load_dtype}, attn={attn_impl}...")
+        print(f"Using device: {device_map}, torch_dtype: {load_dtype}, attn_implementation: {attn_impl}")
+        
         try:
             self.model = VibeVoiceStreamingForConditionalGenerationInference.from_pretrained(
                 self.model_path,
@@ -86,90 +95,141 @@ class VibeVoiceManager:
                 attn_implementation=attn_impl,
             )
         except Exception as e:
-            print(f"Warning: Failed to load with {attn_impl}, falling back to sdpa: {e}")
-            self.model = VibeVoiceStreamingForConditionalGenerationInference.from_pretrained(
-                self.model_path,
-                torch_dtype=load_dtype,
-                device_map=device_map,
-                attn_implementation='sdpa',
-            )
+            if attn_impl == 'flash_attention_2':
+                print(f"Warning: FlashAttention2 failed, falling back to SDPA: {e}")
+                self.model = VibeVoiceStreamingForConditionalGenerationInference.from_pretrained(
+                    self.model_path,
+                    torch_dtype=load_dtype,
+                    device_map=device_map,
+                    attn_implementation='sdpa',
+                )
+                print("Load model with SDPA successful")
+            else:
+                print(f"Fatal error loading model: {e}")
+                return False
 
         self.model.eval()
+
+        # Noise scheduler config (Mandatory in official demo)
         self.model.model.noise_scheduler = self.model.model.noise_scheduler.from_config(
             self.model.model.noise_scheduler.config,
             algorithm_type="sde-dpmsolver++",
             beta_schedule="squaredcos_cap_v2",
         )
-        self.model.set_ddpm_inference_steps(num_steps=5)
+        self.model.set_ddpm_inference_steps(num_steps=self.inference_steps)
 
-        self._load_default_voice()
+        # Voice Presets (Mirroring official demo)
+        self._load_voice_presets()
         return True
 
-    def _load_default_voice(self):
-        # Look for a voice preset in the third_party directory
-        preset_dir = Path("third_party/VibeVoice/demo/voices/streaming_model")
-        preset_path = preset_dir / "en-Carter_man.pt" # Defaulting to Carter
-        
-        if not preset_path.exists():
-            # Try to find any .pt file in that directory
-            presets = list(preset_dir.glob("*.pt"))
-            if presets:
-                preset_path = presets[0]
-            else:
-                print("⚠️ No voice presets found. TTS might fail.")
-                return
-
-        print(f"Loading voice preset from {preset_path}")
-        self.voice_preset = torch.load(
-            preset_path,
-            map_location=self._torch_device,
-            weights_only=False,
-        )
-
-    def stream_audio(self, text: str) -> Iterator[bytes]:
-        if not self.model or not self.processor or not self.voice_preset:
-            print("Model not loaded correctly")
+    def _load_voice_presets(self):
+        voices_dir = Path(VIBEVOICE_REPO_PATH) / "demo" / "voices" / "streaming_model"
+        if not voices_dir.exists():
+            print(f"⚠️ Voices directory not found: {voices_dir}")
             return
 
-        text = text.replace("’", "'").strip()
-        
-        # Prepare inputs
+        for pt_path in voices_dir.rglob("*.pt"):
+            self.voice_presets[pt_path.stem] = pt_path
+
+        if not self.voice_presets:
+            print(f"⚠️ No voice presets (.pt) found in {voices_dir}")
+            return
+
+        # Default to en-Carter_man if available, otherwise first one found
+        if "en-Carter_man" in self.voice_presets:
+            self.default_voice_key = "en-Carter_man"
+        else:
+            self.default_voice_key = next(iter(self.voice_presets))
+            
+        print(f"[startup] Found {len(self.voice_presets)} voice presets. Default: {self.default_voice_key}")
+
+    def _ensure_voice_cached(self, key: str):
+        if key not in self.voice_presets:
+            raise RuntimeError(f"Voice preset {key!r} not found")
+
+        if key not in self._voice_cache:
+            preset_path = self.voice_presets[key]
+            print(f"Loading voice preset {key} from {preset_path}")
+            prefilled_outputs = torch.load(
+                preset_path,
+                map_location=self._torch_device,
+                weights_only=False,
+            )
+            self._voice_cache[key] = prefilled_outputs
+
+        return self._voice_cache[key]
+
+    def _prepare_inputs(self, text: str, prefilled_outputs: Any):
+        if not self.processor or not self.model:
+            raise RuntimeError("VibeVoiceManager not initialized")
+
         processor_kwargs = {
-            "text": text,
-            "cached_prompt": self.voice_preset,
+            "text": text.strip(),
+            "cached_prompt": prefilled_outputs,
             "padding": True,
             "return_tensors": "pt",
             "return_attention_mask": True,
         }
         processed = self.processor.process_input_with_cached_prompt(**processor_kwargs)
-        inputs = {
+        prepared = {
             key: value.to(self._torch_device) if hasattr(value, "to") else value
             for key, value in processed.items()
         }
+        return prepared
 
+    def _run_generation(
+        self,
+        inputs: Dict[str, Any],
+        audio_streamer: AudioStreamer,
+        errors: List[Exception],
+        cfg_scale: float,
+        prefilled_outputs: Any,
+        stop_event: threading.Event,
+    ):
+        try:
+            self.model.generate(
+                **inputs,
+                max_new_tokens=None,
+                cfg_scale=cfg_scale,
+                tokenizer=self.processor.tokenizer,
+                generation_config={"do_sample": False},
+                audio_streamer=audio_streamer,
+                stop_check_fn=stop_event.is_set,
+                verbose=False,
+                refresh_negative=True,
+                all_prefilled_outputs=copy.deepcopy(prefilled_outputs),
+            )
+        except Exception as exc:
+            errors.append(exc)
+            traceback.print_exc()
+        finally:
+            audio_streamer.end()
+
+    def stream_audio(self, text: str, voice_key: Optional[str] = None, cfg_scale: float = 1.5) -> Iterator[bytes]:
+        """
+        Streams audio for the given text. Yields PCM16 bytes.
+        """
+        if not text.strip() or not self.model:
+            return
+
+        text = text.replace("’", "'")
+        key = voice_key if voice_key in self.voice_presets else self.default_voice_key
+        if not key:
+            print("No voice preset available")
+            return
+
+        prefilled_outputs = self._ensure_voice_cached(key)
+        inputs = self._prepare_inputs(text, prefilled_outputs)
+        
         audio_streamer = AudioStreamer(batch_size=1, stop_signal=None, timeout=None)
+        errors = []
         stop_event = threading.Event()
 
-        # Run generation in a separate thread
-        def run_gen():
-            try:
-                self.model.generate(
-                    **inputs,
-                    max_new_tokens=None,
-                    cfg_scale=1.5,
-                    tokenizer=self.processor.tokenizer,
-                    generation_config={"do_sample": False},
-                    audio_streamer=audio_streamer,
-                    stop_check_fn=stop_event.is_set,
-                    verbose=False,
-                    all_prefilled_outputs=copy.deepcopy(self.voice_preset),
-                )
-            except Exception as e:
-                print(f"Generation error: {e}")
-            finally:
-                audio_streamer.end()
-
-        thread = threading.Thread(target=run_gen, daemon=True)
+        thread = threading.Thread(
+            target=self._run_generation,
+            args=(inputs, audio_streamer, errors, cfg_scale, prefilled_outputs, stop_event),
+            daemon=True
+        )
         thread.start()
 
         try:
@@ -180,13 +240,20 @@ class VibeVoiceManager:
                 else:
                     audio_chunk = np.asarray(audio_chunk, dtype=np.float32)
 
-                # Convert to PCM16
+                if audio_chunk.ndim > 1:
+                    audio_chunk = audio_chunk.reshape(-1)
+
+                # PCM16 conversion
                 audio_chunk = np.clip(audio_chunk, -1.0, 1.0)
                 pcm = (audio_chunk * 32767.0).astype(np.int16)
                 yield pcm.tobytes()
+                
         finally:
             stop_event.set()
+            audio_streamer.end()
             thread.join()
+            if errors:
+                raise errors[0]
 
 def load_vibevoice_model():
     manager = VibeVoiceManager()

@@ -21,7 +21,21 @@ dependencies = [
     "Pillow",
     "requests",
     "python-dotenv",
-    "huggingface-hub"
+    "huggingface-hub",
+    "torch==2.5.1",
+    "torchvision==0.20.1",
+    "torchaudio==2.5.1",
+    "accelerate==1.6.0",
+    "transformers==4.51.3",
+    "llvmlite>=0.40.0",
+    "numba>=0.57.0",
+    "diffusers",
+    "scipy",
+    "librosa",
+    "ml-collections",
+    "absl-py",
+    "av",
+    "google-genai>=1.56.0",
 ]
 
 [project.optional-dependencies]
