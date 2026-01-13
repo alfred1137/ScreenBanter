@@ -39,6 +39,9 @@ def build():
         # Data files
         "--include-data-dir=assets=assets",
         
+        # GUI/Icon
+        "--windows-icon-from-ico=assets/icon.png",
+        
         # Output
         "--output-dir=dist",
         "--output-filename=ScreenBanter.exe",

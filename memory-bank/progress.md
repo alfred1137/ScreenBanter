@@ -13,6 +13,7 @@
 - **Git Hygiene**: Created `.env.example`.
 - **Multi-Screenshot Support**: Implemented F10 (Queue) and F11 (Process) logic.
 - **Audio Feedback**: Implemented non-blocking capture sound (`winsound.Beep`).
+- **Icon Update**: Replaced default icon with custom `assets/icon.svg`. Generated 64x64 `assets/icon.png` for system tray and executable. Updated README and build script.
 - **OCR Logging**: Implemented timestamped logging to `logs/ocr.log`.
 - **Stability Fixes**:
     - **Critical**: Fixed server shutdown on Windows by using `CREATE_NEW_PROCESS_GROUP` to isolate from console signals.
@@ -24,9 +25,16 @@
 - **Cleanup**: Removed temporary test files (`check_cuda.py`, `test_tts_stream_v2.py`, etc.).
 
 **Remaining:**
-- **[High Priority]** Finalize standalone packaging (Script prepared: `build_release.py`).
+- **[High Priority]** Implement Settings GUI:
+    - Settings Persistence Layer (`settings.json`).
+    - CustomTkinter-based GUI window.
+    - Integration with VibeVoice/Gemini parameters.
+    - Region capture selection UI.
+- **[Final Step]** Standalone packaging (Script prepared: `build_release.py`).
 
 **In Progress:**
+- Settings GUI Infrastructure (Persistence Layer).
+- Documentation of Settings Architecture and Planning.
 - Verifying complete fix (Tray Icon + Warmup).
 
 **Resolved:**

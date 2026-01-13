@@ -1,8 +1,10 @@
 # Active Context: ScreenBanter
 
-**Current Work Focus:** UI Stability and Packaging. The core application is functional, but the user interface (System Tray) needs reliability fixes before packaging for distribution.
+**Current Work Focus:** Packaging and Settings Planning. The core application is stable, and we are now defining the architecture for user customization and final distribution.
 
 **Recent Changes:**
+- **Feature Planning**: Defined the comprehensive Settings GUI feature set, including TTS configuration, Vision style, Capture modes, and Performance optimization.
+- **Architectural Decision**: Selected `CustomTkinter` for the settings interface to provide a modern Windows 11 look and feel.
 - **Stability Improvements**:
     - **Process Isolation**: Used `subprocess.CREATE_NEW_PROCESS_GROUP` on Windows to prevent `SIGINT` (Ctrl+C) propagation from killing the background TTS server.
     - **Robust Startup**: Switched to `sys.executable` to launch the server, preventing `uv` environment conflicts.
@@ -11,6 +13,10 @@
     - Added comprehensive logging.
     - Refactored `app/main.py` to detect existing server instances.
     - Threaded startup sound.
+- **Visual Branding**:
+    - Replaced generic tray icon with custom `assets/icon.svg`.
+    - Generated high-quality 64x64 PNG for system compatibility.
+    - Integrated icon into `README.md` and configured it for the standalone executable in `build_release.py`.
 - **Feature Completion**:
     - Multi-screenshot workflow (F10/F11).
     - Audio feedback and OCR logging.
@@ -19,6 +25,7 @@
 1.  **Packaging (Nuitka)**: Execute `build_release.py` to create the standalone distribution. This is the final major task.
 
 **Active Decisions and Considerations:**
+- **Priority Shift: Settings vs. Packaging**: We have decided to prioritize the implementation of the Settings GUI over final standalone packaging. This ensures that the first distributed version is user-customizable (voices, hotkeys, audio devices) and that all dependencies (e.g., `customtkinter`) are captured during the final build process.
 - **Windows Process Management**: On Windows, background processes spawned by a console application inherit the console. A `Ctrl+C` event is sent to all processes in the console group. We strictly use `creationflags=subprocess.CREATE_NEW_PROCESS_GROUP` to isolate the TTS server, ensuring it survives interruptions or signals intended only for the CLI.
 - **Server Warmup**: Implemented a `@app.on_event("startup")` handler in FastAPI. This forces the heavy VRAM loading and JIT compilation to occur *before* the server accepts requests. This solves the client-side timeout and "audio cutoff" issues definitively.
 - **Asynchronous Startup**: The UI thread remains responsive while the server warms up in the background.

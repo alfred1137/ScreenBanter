@@ -1,4 +1,4 @@
-# ScreenBanter
+# <img src="assets/icon.svg" width="48" height="48"> ScreenBanter
 
 **Make your screen talk back.**
 
