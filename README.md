@@ -1,8 +1,15 @@
 # <img src="assets/icon.svg" width="48" height="48"> ScreenBanter
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python: 3.12](https://img.shields.io/badge/Python-3.12-blue.svg)](https://www.python.org/)
+[![Managed by uv](https://img.shields.io/badge/Managed%20by-uv-green.svg)](https://github.com/astral-sh/uv)
+
 **Make your screen talk back.**
 
-ScreenBanter is a DIY project that bridges **Google’s Gemini Vision** (for OCR) with **Microsoft’s VibeVoice-0.5B** (for local TTS) to provide real-time desktop narration. It features instant capture-to-speech and a multi-screenshot queuing system.
+ScreenBanter is a amateur project that bridges **Google’s Gemini Vision** (for OCR) with **Microsoft’s VibeVoice-0.5B** (for local TTS) to provide desktop narration. It features instant capture-to-speech and a multi-screenshot queuing system.
+
+## Project Status
+This is an ongoing personal project currently in active development. Features are subject to change.
 
 ---
 
@@ -76,6 +83,12 @@ uv run python -m app.main
 
 ---
 
+## 👋 Contributing
+
+Contributions are welcome! If you have suggestions for improvements, new features, or bug fixes, please open an issue. Pull Requests are, I'm afraid, not something I can manage at the moment.
+
+---
+
 ## 🔧 Technical Details
 
 ### Project Structure
@@ -100,3 +113,9 @@ ScreenBanter/
 - **Total Latency:** ~1.1 - 1.5 seconds (Warm state)
 
 *Note: The first request after startup may take longer (up to 10s) as the model loads into VRAM.*
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
