@@ -187,6 +187,7 @@ class VibeVoiceManager:
         stop_event: threading.Event,
     ):
         try:
+            print(f"DEBUG: Starting model.generate...")
             self.model.generate(
                 **inputs,
                 max_new_tokens=None,
@@ -199,7 +200,9 @@ class VibeVoiceManager:
                 refresh_negative=True,
                 all_prefilled_outputs=copy.deepcopy(prefilled_outputs),
             )
+            print(f"DEBUG: model.generate finished.")
         except Exception as exc:
+            print(f"DEBUG: model.generate failed: {exc}")
             errors.append(exc)
             traceback.print_exc()
         finally:
@@ -212,6 +215,7 @@ class VibeVoiceManager:
         if not text.strip() or not self.model:
             return
 
+        print(f"DEBUG: stream_audio called for text length: {len(text)}")
         text = text.replace("’", "'")
         key = voice_key if voice_key in self.voice_presets else self.default_voice_key
         if not key:
@@ -234,7 +238,12 @@ class VibeVoiceManager:
 
         try:
             stream = audio_streamer.get_stream(0)
+            first_chunk = True
             for audio_chunk in stream:
+                if first_chunk:
+                    print("DEBUG: First audio chunk received from streamer.")
+                    first_chunk = False
+                    
                 if torch.is_tensor(audio_chunk):
                     audio_chunk = audio_chunk.detach().cpu().to(torch.float32).numpy()
                 else:

@@ -36,6 +36,7 @@ dependencies = [
     "absl-py",
     "av",
     "google-genai>=1.56.0",
+    "pyaudio>=0.2.14",
 ]
 
 [project.optional-dependencies]

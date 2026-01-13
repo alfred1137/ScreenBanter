@@ -1,27 +1,39 @@
 # Progress: ScreenBanter
 
-**Overall Status:** TTS verified on GPU with official VibeVoice logic; environment issues resolved.
+**Overall Status:** Core development complete. System is stable and fully functional.
 
 **Completed:**
-- `pyproject.toml`: Added detailed VibeVoice dependencies and pinned `transformers==4.51.3`.
-- **Environment Integration**: Successfully performed a forced reinstall of CUDA 12.1-enabled PyTorch.
-- **CUDA Verification**: Confirmed RTX 3060 Ti visibility via standalone test.
-- `server/model_loader.py`: Completely refactored to achieve parity with the official VibeVoice `StreamingTTSService`, including noise scheduler and voice preset caching.
-- `server/tts_server.py`: Verified functional on `localhost:8000` with real-time streaming response.
-- **Assets**: Created placeholder `assets/icon.png` for system tray.
+- `pyproject.toml`: Finalized with pinned `transformers==4.51.3` and CUDA PyTorch dependencies.
+- **Environment Integration**: Verified CUDA 12.1 detection for RTX 3060 Ti.
+- `server/model_loader.py`: Achieved full parity with official VibeVoice demo.
+- `server/tts_server.py`: Verified functional on `localhost:8000`.
+- **Vision Success**: Gemini `models/gemini-flash-lite-latest` confirmed functional with `assets/BBEventSample.webp`.
+- **Audio Success**: Native `pyaudio` playback confirmed functional.
+- **Integration Test**: Successfully ran end-to-end "Sample Image -> Gemini -> VibeVoice -> Speakers" loop.
+- **Git Hygiene**: Created `.env.example`.
+- **Multi-Screenshot Support**: Implemented F10 (Queue) and F11 (Process) logic.
+- **Audio Feedback**: Implemented non-blocking capture sound (`winsound.Beep`).
+- **OCR Logging**: Implemented timestamped logging to `logs/ocr.log`.
+- **Stability Fixes**:
+    - Resolved startup announcement cutoff by threading the audio call.
+    - Fixed application hang on TTS failure by increasing timeout to 45s.
+    - Improved server startup logic to handle existing instances gracefully.
+    - Added server-side logging for performance monitoring.
+- **Cleanup**: Removed temporary test files (`check_cuda.py`, `test_tts_stream_v2.py`, etc.).
 
 **Remaining:**
-- Test Gemini API connectivity via `test_vision.py` and `app/vision.py`.
-- Execute integrated loop test (Capture -> Vision -> TTS).
-- Address native dependency issues for `pyaudio` and `pystray` (build tools requirement).
-- Finalize application UI/Tray integration.
+- Investigate missing system tray icon on some Windows configurations.
+- Standalone packaging via Nuitka (Optional/Future).
+
+**In Progress:**
+- None. System is stable.
 
 **Known Issues:**
-- `FlashAttention2` is not installed; the model falls back to `SDPA` (this is expected and currently functional).
-- First request latency is ~6.7s for the first chunk; subsequent requests should be profiled.
-- Native libraries (`pyaudio`) need manual installation or specific environment fixes on Windows.
+- Initial latency for the first request is high while model/presets load into VRAM (Expected behavior).
+- System tray icon may be invisible on some setups, though the app functions correctly.
 
 **Decision History:**
-- *Interruption Recovery*: Re-aligned with the official demo notebooks and scripts after initial integration failures.
-- *Dependency Pinning*: Chose to downgrade `transformers` to `4.51.3` rather than monkeypatching the newer version further.
-- *Localhost over 0.0.0.0*: Switched server binding to `127.0.0.1` for improved reliability in local dev.
+- *Interruption Recovery*: Fully aligned with official VibeVoice developer patterns.
+- *Dependency Pinning*: Forced specific PyTorch and Transformers versions to ensure stability.
+- *Audio Threading*: Decoupled audio playback from the main UI thread to prevent blocking and premature termination.
+- *Timeout Adjustment*: Increased client-side timeout to 45s to accommodate VibeVoice's initial processing time on consumer hardware.
