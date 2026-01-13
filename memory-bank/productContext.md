@@ -3,15 +3,18 @@
 **Problem Solved:** Traditional screen readers can be cumbersome and not ideal for quick, on-demand narration of specific on-screen text. There's a need for a lightweight, fast, and user-friendly tool to get immediate audio feedback from visual information.
 
 **How it Should Work:**
-1. User presses a predefined hotkey (e.g., Ctrl + Alt + S).
-2. The system instantly captures the screen content.
-3. The captured image is sent to Google Gemini Vision for precise text extraction (OCR).
-4. The extracted text is then sent to a local VibeVoice-0.5B server.
-5. The VibeVoice server streams audio chunks back to the client.
-6. The client plays these audio chunks in real-time, providing smooth, continuous narration as it's generated.
+1.  **Instant Mode:**
+    - User presses `Ctrl + Alt + S`.
+    - System instantly captures the screen, performs OCR via Gemini, and streams narration via VibeVoice.
+2.  **Queue Mode (Multi-Page/Window):**
+    - User presses `F10` to capture the current view. A short beep confirms the capture.
+    - User navigates to the next page or window and presses `F10` again.
+    - User presses `F11` to process the queue.
+    - System sends all captured images to Gemini, which intelligently merges the text into a cohesive narrative, then streams the audio.
 
 **User Experience Goals:**
 - **Instantaneous Feedback:** Near real-time audio response after hotkey activation.
 - **Smooth Audio Playback:** No noticeable pauses or interruptions during narration.
 - **Minimal Resource Usage:** Run efficiently in the background without significantly impacting system performance.
 - **Simple Operation:** Easy to activate and minimal configuration required.
+- **Feedback:** Audio cues (beeps/speech) confirm actions to the user without needing visual checks.

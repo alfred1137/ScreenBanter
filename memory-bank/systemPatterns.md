@@ -3,30 +3,38 @@
 **System Architecture:**
 ```mermaid
 flowchart TD
-    User[User Hotkey: Ctrl+Alt+S] --> FrontendDaemon[Frontend Daemon (System Tray)]
-    FrontendDaemon -- Screen Capture (DXcam) --> VisionEngine[Vision Engine (Gemini 2.0 Flash Lite API)]
+    User[User] -->|Ctrl+Alt+S| InstantTrigger[Instant Capture]
+    User -->|F10| QueueTrigger[Queue Capture]
+    User -->|F11| ProcessTrigger[Process Queue]
+    
+    InstantTrigger --> Capture[Screen Capture (DXcam)]
+    QueueTrigger -->|Add to List| ImageQueue[Screenshot Queue]
+    ProcessTrigger -->|Send List| VisionEngine
+    
+    Capture -->|Single Frame| VisionEngine[Vision Engine (Gemini 2.0 Flash Lite API)]
+    ImageQueue -->|Batch Frames| VisionEngine
+    
     VisionEngine -- Extracted Text --> LocalInferenceServer[Local Inference Server (FastAPI + VibeVoice-0.5B)]
-    LocalInferenceServer -- Streaming Audio Chunks --> FrontendDaemon
+    LocalInferenceServer -- Streaming Audio Chunks --> FrontendDaemon[Frontend Daemon (Audio Client)]
     FrontendDaemon -- Play Audio (PyAudio) --> User
 ```
 
 **Key Technical Decisions:**
-- **High-Speed Screen Capture:** `DXcam` for Windows 11 due to its 10x performance advantage over standard screenshot tools (5-10ms capture time).
-- **Efficient OCR:** Google Gemini 2.0 Flash Lite API for precise and fast text extraction from screen captures.
-- **Real-time TTS:** Microsoft VibeVoice-0.5B model, wrapped in FastAPI, to provide streaming audio generation, enabling playback before the full sentence is synthesized. The VibeVoice model itself is managed locally via the `third_party/VibeVoice` repository, allowing for direct code integration and optimization.
-- **Async Audio Playback:** `PyAudio` to handle streaming audio chunks from the local server, ensuring smooth, non-blocking playback.
-- **Background Operation:** `pystray` for a system tray application to run the Frontend Daemon discreetly.
-- **Application Bundling:** `Nuitka` for packaging into a single `.exe` for optimal performance and startup on boot.
+- **High-Speed Screen Capture:** `DXcam` for Windows 11 due to its 10x performance advantage (5-10ms).
+- **Batch OCR:** Gemini 2.0 Flash Lite's ability to process multiple images in a single context window allows for coherent narration of multi-page content.
+- **Real-time TTS:** Microsoft VibeVoice-0.5B model, managed by a custom `VibeVoiceManager` that ensures parity with official research code (caching, noise scheduling).
+- **Streaming Audio:** `PyAudio` running in a dedicated daemon thread to prevent UI blocking and ensure smooth playback.
+- **Robust Process Management:** The Frontend Daemon (`app/main.py`) manages the lifecycle of the Local Inference Server, checking for existing instances before spawning new ones.
 
 **Design Patterns in Use:**
-- **Client-Server Architecture:** Clear separation between the Frontend Daemon (client) and the Local Inference Server (server).
-- **Streaming Pattern:** Used for audio delivery from the TTS server to the client, improving perceived latency.
-- **Observer Pattern (Implicit):** The hotkey listener acts as an observer, triggering the narration process.
+- **Client-Server Architecture:** Decoupled Frontend Daemon and Inference Server allows for independent restarting and potential remote deployment.
+- **Streaming Pattern:** Audio chunks are yielded immediately upon generation, reducing time-to-first-byte.
+- **Producer-Consumer:** The `AudioClient` uses a thread-safe queue to buffer incoming audio chunks for the playback worker.
 
 **Component Relationships:**
-- **`app/main.py` (Orchestrator):** Coordinates screen capture, OCR, TTS request, and audio playback. Manages the system tray icon and hotkey.
-- **`app/capture.py`:** Provides the `DXcam` interface for fast screen grabbing.
-- **`app/vision.py`:** Handles interaction with the Gemini API for text extraction.
-- **`app/audio_client.py`:** Manages the streaming audio reception and playback using `PyAudio`.
-- **`server/tts_server.py`:** Exposes a FastAPI endpoint for text-to-speech requests and streams audio responses.
-- **`server/model_loader.py`:** Responsible for loading the VibeVoice model and CUDA setup.
+- **`app/main.py`:** The central orchestrator. Initializes the system tray, registers hotkeys, manages the screenshot queue, and controls the server process.
+- **`app/capture.py`:** Wraps `DXcam` for reliable screen grabbing.
+- **`app/vision.py`:** Handles interaction with the Gemini API, supporting both single-image and multi-image payloads.
+- **`app/audio_client.py`:** A threaded client that handles the persistent connection to the TTS server and smooth audio playback.
+- **`server/tts_server.py`:** FastAPI entry point.
+- **`server/model_loader.py`:** Handles the complexity of loading VibeVoice, managing CUDA devices, and caching voice presets.

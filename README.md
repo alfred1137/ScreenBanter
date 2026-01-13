@@ -1,138 +1,102 @@
 # ScreenBanter
-Make your screen talk back. A DIY project built with VIBES to bridge Google’s Gemini Vision with Microsoft’s VibeVoice-0.5B for real-time desktop narration.
 
-### 1. High-Level Architecture
+**Make your screen talk back.**
 
-The project is split into a **Frontend Daemon** (running in your system tray) and a **Local Inference Server** (running the TTS model).
+ScreenBanter is a DIY project that bridges **Google’s Gemini Vision** (for OCR) with **Microsoft’s VibeVoice-0.5B** (for local TTS) to provide real-time desktop narration. It features instant capture-to-speech and a multi-screenshot queuing system.
 
 ---
 
-### 2. Project Structure
+## 🚀 Features
 
+- **Instant Narration:** Press `Ctrl+Alt+S` to capture the screen and hear the text immediately.
+- **Batch Mode:** Use `F10` to queue multiple screenshots (e.g., different pages or windows) and `F11` to stitch them together and narrate them as one cohesive text.
+- **Local Neural TTS:** Uses VibeVoice-0.5B with GPU acceleration for natural, low-latency speech.
+- **Smart OCR:** Leverages Gemini 2.0 Flash Lite to intelligently merge fragmented text and paragraphs.
+- **Non-Intrusive:** Runs in the system tray with audio feedback for interactions.
+
+---
+
+## 🛠️ Architecture
+
+The project is split into two components:
+1.  **Frontend Daemon:** A system tray application (`app/main.py`) that handles global hotkeys, screen capture (via `DXcam`), and audio playback (`PyAudio`).
+2.  **Local Inference Server:** A FastAPI server (`server/tts_server.py`) that hosts the VibeVoice model and streams audio chunks to the client.
+
+---
+
+## 📦 Installation
+
+**Prerequisites:**
+- Windows 10/11 (Required for `DXcam`).
+- NVIDIA GPU with CUDA support (Recommended for VibeVoice latency).
+- [uv](https://github.com/astral-sh/uv) (Recommended for Python dependency management).
+- [Microsoft Visual C++ Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) (Required for `pyaudio` and `pystray`).
+
+**1. Clone the Repository:**
+```bash
+git clone https://github.com/yourusername/ScreenBanter.git
+cd ScreenBanter
+```
+
+**2. Setup Environment:**
+Create a `.env` file from the example:
+```bash
+cp .env.example .env
+```
+Edit `.env` and add your **GEMINI_KEY**.
+
+**3. Install Dependencies:**
+Using `uv`:
+```bash
+uv sync
+```
+*Note: The project pins `transformers` to 4.51.3 and uses CUDA 12.1-compatible PyTorch.*
+
+---
+
+## 🎮 Usage
+
+**1. Start the Application:**
+This command starts the system tray app, which automatically launches the TTS server in the background.
+```bash
+uv run python -m app.main
+```
+*Wait for the startup announcement: "ScreenBanter is active..."*
+
+**2. Controls:**
+
+| Hotkey | Action | Description |
+| :--- | :--- | :--- |
+| **`Ctrl + Alt + S`** | **Instant Capture** | Captures the current screen and narrates identified text immediately. |
+| **`F10`** | **Queue Screenshot** | Captures the screen and adds it to a buffer. You will hear a confirmation beep. |
+| **`F11`** | **Process Queue** | Sends all queued screenshots to Gemini, merges the text, and narrating the result. |
+
+**3. Logs:**
+- OCR results are logged to `logs/ocr.log`.
+
+---
+
+## 🔧 Technical Details
+
+### Project Structure
 ```text
-VisionVoice-Local/
+ScreenBanter/
 ├── app/
-│   ├── main.py            # Orchestrator & System Tray
+│   ├── main.py            # Orchestrator, System Tray, & Hotkeys
 │   ├── capture.py         # DXcam high-speed screen grabbing
-│   ├── vision.py          # Gemini 2.0 Flash Lite API client
-│   └── audio_client.py    # Plays streaming audio chunks
+│   ├── vision.py          # Gemini Vision API client (Multi-image support)
+│   └── audio_client.py    # Threaded audio streaming client
 ├── server/
 │   ├── tts_server.py      # FastAPI wrapper for VibeVoice
-│   └── model_loader.py    # VibeVoice weights & CUDA setup
-├── assets/                # Icons and loading sounds
-└── .env                   # API Keys and local paths
-
+│   └── model_loader.py    # Model weights, caching, and CUDA setup
+├── third_party/           # Submodules (VibeVoice)
+└── assets/                # Icons and resources
 ```
 
----
+### Performance Targets
+- **Capture (DXcam):** ~10ms
+- **OCR (Gemini):** ~600-800ms
+- **TTS Initialization (VibeVoice):** ~300ms (Warm)
+- **Total Latency:** ~1.1 - 1.5 seconds (Warm state)
 
-### 3. Component Breakdown
-
-#### A. The TTS Backend (FastAPI + VibeVoice)
-
-Instead of returning a full file, we use **Streaming Response**. This allows the audio to start playing the moment the first few tokens are synthesized.
-
-```python
-# server/tts_server.py
-from fastapi import FastAPI
-from fastapi.responses import StreamingResponse
-import torch
-from vibevoice.model import VibeVoiceRealtime 
-
-app = FastAPI()
-model = VibeVoiceRealtime.from_pretrained("microsoft/VibeVoice-Realtime-0.5B").to("cuda")
-
-@app.post("/v1/audio/stream")
-async def stream_tts(text: str):
-    def generate():
-        # VibeVoice yields audio chunks incrementally
-        for chunk in model.generate_stream(text):
-            yield chunk.tobytes()
-            
-    return StreamingResponse(generate(), media_type="audio/wav")
-
-```
-
-#### B. The Vision Engine (DXcam + Gemini)
-
-We use `DXcam` because it is **10x faster** than standard screenshot tools on Windows 11, capturing frames in roughly 5–10ms.
-
-```python
-# app/vision.py
-import dxcam
-from google import genai
-
-camera = dxcam.create()
-
-def get_screen_text(api_key):
-    frame = camera.grab() # High-speed grab
-    client = genai.Client(api_key=api_key)
-    
-    response = client.models.generate_content(
-        model='gemini-2.0-flash-lite',
-        contents=['Extract text precisely. Text only.', frame]
-    )
-    return response.text.strip()
-
-```
-
-#### C. The System Tray Orchestrator
-
-This keeps the app running in the background without a messy terminal window.
-
-```python
-# app/main.py
-import pystray
-from PIL import Image
-from global_hotkeys import register_hotkeys, start_checking_hotkeys
-
-def on_trigger():
-    # 1. Capture & Gemini OCR
-    text = get_screen_text(os.getenv("GEMINI_KEY"))
-    
-    # 2. Local Streaming TTS
-    play_streaming_audio(text) # Uses PyAudio to play chunks from server
-
-# System Tray Setup
-image = Image.open("assets/icon.png")
-menu = pystray.Menu(pystray.MenuItem('Exit', lambda icon: icon.stop()))
-icon = pystray.Icon("VisionVoice", image, "VisionVoice Active", menu)
-
-# Register Hotkey (Ctrl + Alt + S)
-bindings = [["control + alt + s", None, on_trigger]]
-register_hotkeys(bindings)
-
-start_checking_hotkeys()
-icon.run()
-
-```
-
----
-
-### 4. Implementation Roadmap for the Developer
-
-| Phase | Focus | Key Tech |
-| --- | --- | --- |
-| **Phase 1** | **Backend Latency:** Set up the VibeVoice FastAPI server. Ensure it runs on CUDA (GPU) to hit the ~300ms first-byte target. | `torch`, `uvicorn` |
-| **Phase 2** | **Capture Speed:** Implement `DXcam`. Test the speed difference against `Pillow`. | `dxcam`, `numpy` |
-| **Phase 3** | **Cloud Bridge:** Integrate Gemini 2.0 Flash Lite. Optimize the prompt for minimal token usage to reduce API latency. | `google-genai` |
-| **Phase 4** | **Async Audio:** Write the audio client. It must handle a "stream" of bytes and play them using `PyAudio` so there's no silence between chunks. | `pyaudio`, `requests` |
-| **Phase 5** | **Packaging:** Bundle the app using `Nuitka` (better than PyInstaller for performance) so you have a single `.exe` that starts on boot. | `Nuitka` |
-
----
-
-### 5. Estimated Performance (The 2026 Standard)
-
-By using this specific stack, your end-to-end latency budget looks like this:
-
-* **Capture (DXcam):** 10ms
-* **Upload & Gemini OCR:** 600ms – 800ms
-* **TTS Initialization (VibeVoice):** 300ms
-* **Total:** **~1.1 Seconds** from Hotkey to Speech.
-
-### Next Step
-
-Would you like me to focus on the **Audio Client code**? This is often the hardest part—it requires playing the audio chunks in a "buffer" so the voice sounds smooth while the model is still generating the end of the sentence.
-
-[VibeVoice-Realtime Setup and Performance](https://www.youtube.com/watch?v=TyupwtBoK_k)
-This video provides a deep dive into the Microsoft VibeVoice-Realtime-0.5B model, detailing the installation and architectural nuances required to achieve the low-latency results discussed in this plan.
+*Note: The first request after startup may take longer (up to 10s) as the model loads into VRAM.*
