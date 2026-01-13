@@ -5573,6 +5573,11 @@ dev = [
     { name = "ruff" },
 ]
 
+[package.dev-dependencies]
+dev = [
+    { name = "nuitka" },
+]
+
 [package.metadata]
 requires-dist = [
     { name = "absl-py" },
@@ -5608,6 +5613,9 @@ requires-dist = [
     { name = "uvicorn" },
 ]
 provides-extras = ["dev"]
+
+[package.metadata.requires-dev]
+dev = [{ name = "nuitka", specifier = ">=2.8.9" }]
 
 [[package]]
 name = "setuptools"

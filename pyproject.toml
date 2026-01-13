@@ -47,3 +47,8 @@ dev = [
     "pytest",
     "pre-commit"
 ]
+
+[dependency-groups]
+dev = [
+    "nuitka>=2.8.9",
+]

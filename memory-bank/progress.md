@@ -15,22 +15,26 @@
 - **Audio Feedback**: Implemented non-blocking capture sound (`winsound.Beep`).
 - **OCR Logging**: Implemented timestamped logging to `logs/ocr.log`.
 - **Stability Fixes**:
+    - **Critical**: Fixed server shutdown on Windows by using `CREATE_NEW_PROCESS_GROUP` to isolate from console signals.
+    - **Critical**: Fixed server environment inheritance by using `sys.executable`.
     - Resolved startup announcement cutoff by threading the audio call.
     - Fixed application hang on TTS failure by increasing timeout to 45s.
     - Improved server startup logic to handle existing instances gracefully.
-    - Added server-side logging for performance monitoring.
+    - Added persistent server-side logging (`logs/server_stdout.log`, `logs/server_stderr.log`).
 - **Cleanup**: Removed temporary test files (`check_cuda.py`, `test_tts_stream_v2.py`, etc.).
 
 **Remaining:**
-- Investigate missing system tray icon on some Windows configurations.
-- Standalone packaging via Nuitka (Optional/Future).
+- **[High Priority]** Finalize standalone packaging (Script prepared: `build_release.py`).
 
 **In Progress:**
-- None. System is stable.
+- Verifying complete fix (Tray Icon + Warmup).
+
+**Resolved:**
+- **Tray Icon Invisibility**: Fixed by moving server startup to a background thread.
+- **First Request Timeout (Cold Start)**: Fixed by implementing a model warmup routine (pre-generation) in `server/tts_server.py` startup event.
 
 **Known Issues:**
-- Initial latency for the first request is high while model/presets load into VRAM (Expected behavior).
-- System tray icon may be invisible on some setups, though the app functions correctly.
+- Server startup takes slightly longer due to warmup (Intentional trade-off for runtime responsiveness).
 
 **Decision History:**
 - *Interruption Recovery*: Fully aligned with official VibeVoice developer patterns.

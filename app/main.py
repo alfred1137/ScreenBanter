@@ -27,6 +27,8 @@ class ScreenBanterApp:
         self.audio = AudioClient()
         self.icon = None
         self.server_process = None
+        self.stdout_log = None
+        self.stderr_log = None
         self.screenshot_queue = []
         self.log_dir = "logs"
         if not os.path.exists(self.log_dir):
@@ -66,12 +68,25 @@ class ScreenBanterApp:
             pass
 
         print("Starting TTS server...")
-        cmd = ["uv", "run", "uvicorn", "server.tts_server:app", "--port", "8000"]
+        
+        # Check if we are running in a frozen bundle (Nuitka/PyInstaller)
+        if getattr(sys, 'frozen', False):
+            # If frozen, we spawn ourselves with the --server flag
+            cmd = [sys.executable, "--server"]
+        else:
+            # Development mode: use current python environment directly
+            cmd = [sys.executable, "-m", "uvicorn", "server.tts_server:app", "--port", "8000"]
+
         try:
+            # Redirect logs to files for debugging
+            self.stdout_log = open(os.path.join(self.log_dir, "server_stdout.log"), "w")
+            self.stderr_log = open(os.path.join(self.log_dir, "server_stderr.log"), "w")
+
             self.server_process = subprocess.Popen(
                 cmd, 
-                stdout=subprocess.DEVNULL, 
-                stderr=subprocess.PIPE
+                stdout=self.stdout_log, 
+                stderr=self.stderr_log,
+                creationflags=subprocess.CREATE_NEW_PROCESS_GROUP
             )
             
             print("Waiting for TTS server to be ready...")
@@ -88,8 +103,8 @@ class ScreenBanterApp:
                     pass
                 
                 if self.server_process.poll() is not None:
-                    _, stderr = self.server_process.communicate()
-                    print(f"TTS Server failed to start. Error: {stderr.decode()}")
+                    print("TTS Server failed to start.")
+                    print(f"Check logs in {self.log_dir}/server_stderr.log for details.")
                     return False
                 
                 time.sleep(1)
@@ -110,6 +125,13 @@ class ScreenBanterApp:
             except subprocess.TimeoutExpired:
                 self.server_process.kill()
             self.server_process = None
+            
+        if self.stdout_log:
+            self.stdout_log.close()
+            self.stdout_log = None
+        if self.stderr_log:
+            self.stderr_log.close()
+            self.stderr_log = None
 
     def on_trigger(self):
         """Ctrl + Alt + S: Instant capture and narrate."""
@@ -168,11 +190,15 @@ class ScreenBanterApp:
         
         threading.Thread(target=_play, daemon=True).start()
 
-    def setup_app(self, icon):
-        icon.title = "ScreenBanter: Starting Server..."
-        
+    def init_backend(self):
+        """
+        Background initialization task to start the server and register hotkeys
+        without blocking the UI thread.
+        """
         if self.start_tts_server():
-            icon.title = "ScreenBanter: Active"
+            if self.icon:
+                self.icon.title = "ScreenBanter: Active"
+                self.icon.notify("ScreenBanter is ready!", "Startup Complete")
             
             print("Registering hotkeys...")
             bindings = [
@@ -188,8 +214,16 @@ class ScreenBanterApp:
             
             self.play_startup_sound()
         else:
-            icon.title = "ScreenBanter: Server Failed"
+            if self.icon:
+                self.icon.title = "ScreenBanter: Server Failed"
+                self.icon.notify("Failed to start TTS Server.", "Startup Error")
             print("Server failed to start. Check logs.")
+
+    def setup_app(self, icon):
+        icon.visible = True
+        icon.title = "ScreenBanter: Starting Server..."
+        # Run initialization in a separate thread so the icon appears immediately
+        threading.Thread(target=self.init_backend, daemon=True).start()
 
     def run(self):
         try:
@@ -209,6 +243,17 @@ class ScreenBanterApp:
         icon.stop()
         sys.exit(0)
 
+def run_server_mode():
+    """Runs the FastAPI server directly using uvicorn."""
+    import uvicorn
+    # Import the app object to ensure it's loaded
+    from server.tts_server import app as fastapi_app
+    print("Starting Internal TTS Server...")
+    uvicorn.run(fastapi_app, host="127.0.0.1", port=8000)
+
 if __name__ == "__main__":
-    app = ScreenBanterApp()
-    app.run()
+    if "--server" in sys.argv:
+        run_server_mode()
+    else:
+        app = ScreenBanterApp()
+        app.run()

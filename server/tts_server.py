@@ -22,6 +22,30 @@ async def stream_tts(request: TTSRequest):
 
     return StreamingResponse(manager.stream_audio(request.text), media_type="audio/wav")
 
+@app.on_event("startup")
+async def warmup_model():
+    """
+    Warms up the VibeVoice model by loading the default voice and running a short generation.
+    This moves the 'cold start' latency to the server startup phase, rather than the first user request.
+    """
+    if manager:
+        print("[Warmup] Starting model warmup...")
+        try:
+            # 1. Load default voice preset into VRAM
+            if manager.default_voice_key:
+                print(f"[Warmup] Caching default voice: {manager.default_voice_key}")
+                manager._ensure_voice_cached(manager.default_voice_key)
+            
+            # 2. Run a dummy generation to trigger CUDA JIT / context init
+            print("[Warmup] Running dummy generation...")
+            dummy_text = "Ready."
+            # Consume the generator to force execution
+            for _ in manager.stream_audio(dummy_text):
+                pass
+            print("[Warmup] Model warmup complete. First request should be fast.")
+        except Exception as e:
+            print(f"[Warmup] Warning: Warmup failed: {e}")
+
 @app.get("/health")
 async def health_check():
     return {
