@@ -2,28 +2,27 @@
 
 **System Architecture:**
 ```mermaid
-flowchart TD
+graph TD
     User[User] -->|Ctrl+Alt+S| InstantTrigger[Instant Capture]
     User -->|F10| QueueTrigger[Queue Capture]
     User -->|F11| ProcessTrigger[Process Queue]
-    
+
     InstantTrigger --> Capture[Screen Capture (DXcam)]
     QueueTrigger -->|Add to List| ImageQueue[Screenshot Queue]
     ProcessTrigger -->|Send List| VisionEngine
-    
+
     Capture -->|Single Frame| VisionEngine[Vision Engine (Gemini 2.0 Flash Lite API)]
     ImageQueue -->|Batch Frames| VisionEngine
-    
+
     VisionEngine -- Extracted Text --> LocalInferenceServer[Local Inference Server (FastAPI + VibeVoice-0.5B)]
     LocalInferenceServer -- Streaming Audio Chunks --> FrontendDaemon[Frontend Daemon (Audio Client)]
     FrontendDaemon -- Play Audio (PyAudio) --> User
-    
+
     TrayMenu[Tray Menu] -->|Open| SettingsGUI[Settings GUI (CustomTkinter)]
     SettingsGUI <-->|Read/Write| SettingsManager[Settings Manager]
     SettingsManager -.->|Apply| FrontendDaemon
     SettingsManager -.->|Config| LocalInferenceServer
 ```
-
 **Key Technical Decisions:**
 - **Modern Desktop GUI:** `CustomTkinter` will be used for the Settings window to provide a native, themed (Light/Dark mode) experience that matches Windows 11 aesthetics.
 - **Settings Persistence:** A `settings.json` file in the application root will store all user preferences, managed by a centralized `SettingsManager` class.

@@ -204,7 +204,7 @@ ScreenBanter/
 ## 🔗 Flow Chart
 
 ```mermaid
-flowchart TD
+graph TD
     User[User] -->|Hotkey| Trigger[Capture Trigger]
     Trigger -->|DXcam| Capture[Screen/Region Capture]
     Capture -->|Image Data| Vision[Gemini Vision Engine]
@@ -214,7 +214,9 @@ flowchart TD
     
     Tray[Tray Icon] -->|Settings| GUI[Settings GUI]
     GUI <-->|JSON| Config[settings.json]
-    Config -.->|Applies to| Trigger & Audio & Server
+    Config -.->|Applies to| Trigger
+    Config -.->|Applies to| Audio
+    Config -.->|Applies to| Server
 ```
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
