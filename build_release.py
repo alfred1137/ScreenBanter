@@ -3,10 +3,10 @@ import subprocess
 import shutil
 import sys
 
-def run_command(command):
+def run_command(command, env=None):
     print(f"Running: {' '.join(command)}")
     try:
-        subprocess.check_call(command)
+        subprocess.check_call(command, env=env)
     except subprocess.CalledProcessError as e:
         print(f"Error building: {e}")
         sys.exit(1)
@@ -24,12 +24,24 @@ def build():
         except Exception as e:
             print(f"Warning: Could not clean dist directory: {e}")
     
+    # Setup environment
+    env = os.environ.copy()
+    # Add VibeVoice to PYTHONPATH so Nuitka can find the 'vibevoice' package
+    vibevoice_repo_path = os.path.join(project_root, "third_party", "VibeVoice")
+    if os.path.exists(vibevoice_repo_path):
+        env["PYTHONPATH"] = vibevoice_repo_path + os.pathsep + env.get("PYTHONPATH", "")
+        print(f"Added to PYTHONPATH: {vibevoice_repo_path}")
+
     # Nuitka arguments
     nuitka_cmd = [
         sys.executable, "-m", "nuitka",
         "--standalone",
         "--assume-yes-for-downloads", # Avoid hanging in CI
-        "--python-flag=no_site",  # Don't use system site-packages
+        "--python-flag=no_site",      # Don't use system site-packages
+        
+        # Plugins
+        "--enable-plugin=tk-inter",   # Required for customtkinter
+        "--enable-plugin=torch",      # Highly recommended for torch-based apps
         
         # Core packages
         "--include-package=uvicorn",
@@ -41,13 +53,25 @@ def build():
         "--include-package=transformers",
         "--include-package=customtkinter",
         "--include-package=darkdetect", # Needed by customtkinter
-        "--include-package=engineio.async_drivers.aiohttp", 
+        "--include-package=dxcam",
+        "--include-package=google",
+        "--include-package=huggingface_hub",
+                "--include-package=accelerate",
+                "--include-package=av",
+                "--include-package=soundfile",
+                "--include-package=pyaudio",
+                
+                # Application packages
+        "--include-package=app",
+        "--include-package=server",
         
         # Third party
-        "--include-package=third_party",
+        "--include-package=vibevoice",
         
         # Data files
         "--include-data-dir=assets=assets",
+        # Include VibeVoice voice presets as data
+        "--include-data-dir=third_party/VibeVoice/demo/voices=third_party/VibeVoice/demo/voices",
         
         # Output
         "--output-dir=dist",
@@ -58,25 +82,21 @@ def build():
     ]
 
     # Handle Icon if it exists as .ico (Nuitka requirement)
-    # If not .ico, we just skip the flag and let it use default
     icon_path = os.path.join(project_root, "assets", "icon.ico")
     if os.path.exists(icon_path):
         nuitka_cmd.append(f"--windows-icon-from-ico={icon_path}")
 
     print("Starting Nuitka build... This may take a while (20-40 minutes).")
-    run_command(nuitka_cmd)
+    run_command(nuitka_cmd, env=env)
     
     # Post-build: Copy external resources
-    build_output_dir = os.path.join(dist_dir, "app.main.dist")
-    if not os.path.exists(build_output_dir):
-        # Fallback check
-        possible_dirs = [d for d in os.listdir(dist_dir) if d.endswith(".dist")]
-        if possible_dirs:
-            build_output_dir = os.path.join(dist_dir, possible_dirs[0])
-        else:
-            print("Could not locate build output directory.")
-            sys.exit(1)
-            
+    # Nuitka 2.x creates a folder ending in .dist
+    possible_dirs = [d for d in os.listdir(dist_dir) if d.endswith(".dist")]
+    if not possible_dirs:
+        print("Could not locate build output directory.")
+        sys.exit(1)
+        
+    build_output_dir = os.path.join(dist_dir, possible_dirs[0])
     print(f"Build located at: {build_output_dir}")
     
     # Copy Models
