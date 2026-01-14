@@ -10,9 +10,13 @@ class SettingsManager:
             "process": "f11"
         },
         "audio": {
-            "voice_key": "en-Carter_man",
+            "voice_key": "en-Davis_man",
             "volume": 1.0,
             "speed": 1.0
+        },
+        "capture": {
+            "use_region": True,
+            "region": None
         },
         "system": {
             "minimize_to_tray": True,

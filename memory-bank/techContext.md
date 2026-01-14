@@ -8,7 +8,9 @@
 - **DXcam:** Windows-specific high-speed screen capture.
 - **PyAudio:** Low-level audio playback.
 - **pystray:** System tray integration.
-- **global_hotkeys:** Global keyboard shortcuts.
+- **CustomTkinter:** Modern GUI for the settings window.
+- **tkinter (Toplevel):** Transparent overlay for region selection.
+- **global_hotkeys:** Global keyboard shortcuts with dynamic rebinding support.
 - **uv:** Ultra-fast Python package and project manager.
 
 **Development Environment:**
@@ -18,14 +20,18 @@
 
 **Key Dependencies & Constraints:**
 - **Transformers:** Pinned to `4.51.3` to ensure compatibility with VibeVoice's specific internal logic.
-- **PyTorch:** Must be the CUDA-enabled version (`index-url` management handled via `uv` or manual pip args).
+- **PyTorch:** Must be the CUDA-enabled version.
+- **CustomTkinter:** Used for a themed (Light/Dark mode) settings interface.
 - **Native Build Tools:** `PyAudio` and `Pystray` often require Microsoft Visual C++ Build Tools during installation.
 
 **Tool Usage Patterns:**
-- **Run Client:** `uv run python -m app.main`
-- **Run Server (Debug):** `uv run uvicorn server.tts_server:app --reload`
+- **Run App:** `uv run python -m app.main`
+- **Run Server Mode:** `uv run python -m app.main --server` (Used for packaged bundles)
+- **Run Server (Debug):** `uv run uvicorn server.tts_server:app --port 8000`
 - **Dependency Sync:** `uv sync`
 
 **Project Structure:**
-- The project allows the server and client to run in the same environment but logically separated processes.
-- `server/model_loader.py` contains the critical adaptation logic to make VibeVoice work as a library.
+- The project is logically split into a **Frontend Daemon** (`app/`) and an **Inference Server** (`server/`).
+- **Settings Management:** `app/settings.py` provides a centralized `SettingsManager` for `settings.json`.
+- **GUI Components:** `app/settings_window.py` (Main GUI) and `app/region_selector.py` (Region selection tool).
+- **Inference Adaptation:** `server/model_loader.py` adapts VibeVoice for library-style usage with dynamic voice discovery and warmup routines.

@@ -145,7 +145,13 @@ class ScreenBanterApp:
         """F10: Capture and queue."""
         print("DEBUG: Queueing screenshot...")
         try:
-            frame = self.capturer.capture()
+            region = None
+            if settings_manager.get("capture", "use_region"):
+                region = settings_manager.get("capture", "region")
+                if region:
+                    print(f"DEBUG: Capturing region: {region}")
+
+            frame = self.capturer.capture(region=region)
             if frame is not None:
                 self.screenshot_queue.append(frame)
                 print(f"DEBUG: Screenshot added to queue. Queue size: {len(self.screenshot_queue)}")
@@ -284,7 +290,6 @@ class ScreenBanterApp:
         stop_checking_hotkeys()
         self.stop_tts_server()
         icon.stop()
-        sys.exit(0)
 
 def run_server_mode():
     """Runs the FastAPI server directly using uvicorn."""

@@ -7,12 +7,14 @@ class ScreenCapturer:
         print("Initializing DXcam...")
         self.camera = dxcam.create()
         
-    def capture(self):
+    def capture(self, region=None):
         """
         Captures the current screen frame as a numpy array.
+        Args:
+            region: Optional tuple (left, top, right, bottom)
         Returns None if capture fails.
         """
-        frame = self.camera.grab()
+        frame = self.camera.grab(region=region)
         if frame is not None:
             # DXcam returns RGB by default
             return frame

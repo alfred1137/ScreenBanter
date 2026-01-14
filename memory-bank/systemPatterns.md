@@ -40,9 +40,21 @@ flowchart TD
 - **Producer-Consumer:** The `AudioClient` uses a thread-safe queue to buffer incoming audio chunks for the playback worker.
 
 **Component Relationships:**
-- **`app/main.py`:** The central orchestrator. Initializes the system tray, registers hotkeys, manages the screenshot queue, and controls the server process.
-- **`app/capture.py`:** Wraps `DXcam` for reliable screen grabbing.
+
+- **`app/main.py`:** The central orchestrator. Initializes the system tray, registers hotkeys from settings, manages the screenshot queue, and controls the server process lifecycle.
+
+- **`app/settings.py`:** Contains `SettingsManager`, which handles `settings.json` persistence and provides a centralized API for other components to access configuration.
+
+- **`app/settings_window.py`:** A `CustomTkinter`-based GUI for user configuration, including dynamic voice fetching from the server.
+
+- **`app/region_selector.py`:** A `tkinter`-based transparent overlay for interactive capture area selection.
+
+- **`app/capture.py`:** Wraps `DXcam` for high-speed screen and region grabbing.
+
 - **`app/vision.py`:** Handles interaction with the Gemini API, supporting both single-image and multi-image payloads.
-- **`app/audio_client.py`:** A threaded client that handles the persistent connection to the TTS server and smooth audio playback.
-- **`server/tts_server.py`:** FastAPI entry point.
-- **`server/model_loader.py`:** Handles the complexity of loading VibeVoice, managing CUDA devices, and caching voice presets.
+
+- **`app/audio_client.py`:** A threaded client that handles the persistent connection to the TTS server and smooth audio playback via `PyAudio`.
+
+- **`server/tts_server.py`:** FastAPI entry point. Includes a warmup routine to eliminate cold-start latency.
+
+- **`server/model_loader.py`:** Handles loading VibeVoice, managing CUDA devices, and dynamic discovery of voice presets (`.pt` files).

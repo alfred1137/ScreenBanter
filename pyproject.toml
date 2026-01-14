@@ -14,7 +14,7 @@ dependencies = [
     "fastapi",
     "dxcam",
     # "pyaudio", # Requires Microsoft Visual C++ Build Tools
-    # "pystray", # Also requires Visual C++ Build Tools, or has other native dependencies
+    "pystray", # Also requires Visual C++ Build Tools, or has other native dependencies
     "global_hotkeys",
     "Nuitka",
     "numpy",
@@ -37,6 +37,7 @@ dependencies = [
     "av",
     "google-genai>=1.56.0",
     "pyaudio>=0.2.14",
+    "customtkinter",
 ]
 
 [project.optional-dependencies]

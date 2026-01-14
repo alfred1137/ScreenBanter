@@ -19,10 +19,16 @@
 - **Simple Operation:** Easy to activate and minimal configuration required.
 - **Feedback:** Audio cues (beeps/speech) confirm actions to the user without needing visual checks.
 
-## User Customization (Planned)
-The application will feature a dedicated Settings GUI allowing users to customize:
-- **TTS Profile:** Selection of voices (25+ presets), expressiveness (CFG Scale), and quality/speed balance (Inference Steps).
-- **Vision Logic:** Customizable system prompts for Gemini to change narration style.
-- **Capture Modes:** Toggling between Fullscreen, Active Window, and Region Selection.
-- **Accessibility:** Audio cue toggles and global hotkey rebinding.
-- **Hardware/Performance:** Audio output device selection and VRAM optimization (Warmup toggle).
+## User Customization
+
+The application features a dedicated Settings GUI allowing users to customize:
+
+- **TTS Profile:** Dynamic selection of voices fetched from the server.
+
+- **Capture Modes:** Toggling between Fullscreen and Region Selection with an interactive selector.
+
+- **Accessibility:** Audio cue toggles (startup sound, capture beep).
+
+- **Global Hotkeys:** Customizable triggers for instant capture, queueing, and processing.
+
+- **Hardware/Performance:** Automatic VRAM optimization via model warmup on startup.

@@ -15,6 +15,13 @@
 - **Audio Feedback**: Implemented non-blocking capture sound (`winsound.Beep`).
 - **Icon Update**: Replaced default icon with custom `assets/icon.svg`. Generated 64x64 `assets/icon.png` for system tray and executable. Updated README and build script.
 - **OCR Logging**: Implemented timestamped logging to `logs/ocr.log`.
+- **Settings GUI**: Full implementation including General, Audio, and Hotkey configuration using `CustomTkinter`.
+- **Region Capture**: Implemented transparent overlay for defining capture areas (`app/region_selector.py`) and integrated with `dxcam`.
+- **Settings Persistence**: Implemented `SettingsManager` in `app/settings.py` for `settings.json` handling.
+- **Server API Update**: Updated `server/tts_server.py` and `server/model_loader.py` to support dynamic voice selection and list available voices.
+- **Backend Integration**: Updated `app/main.py` and `app/audio_client.py` to use dynamic settings and hotkeys.
+- **Tray Icon Invisibility**: Fixed by moving server startup to a background thread.
+- **First Request Timeout (Cold Start)**: Fixed by implementing a model warmup routine (pre-generation) in `server/tts_server.py` startup event.
 - **Stability Fixes**:
     - **Critical**: Fixed server shutdown on Windows by using `CREATE_NEW_PROCESS_GROUP` to isolate from console signals.
     - **Critical**: Fixed server environment inheritance by using `sys.executable`.
@@ -25,20 +32,10 @@
 - **Cleanup**: Removed temporary test files (`check_cuda.py`, `test_tts_stream_v2.py`, etc.).
 
 **Remaining:**
-- **[High Priority]** Implement Settings GUI:
-    - CustomTkinter-based GUI window.
-    - Region capture selection UI.
 - **[Final Step]** Standalone packaging (Script prepared: `build_release.py`).
 
 **In Progress:**
-- Settings GUI Implementation (Backend complete, frontend next).
-
-**Resolved:**
-- **Settings Persistence**: Implemented `SettingsManager` in `app/settings.py` for `settings.json` handling.
-- **Server API Update**: Updated `server/tts_server.py` and `server/model_loader.py` to support dynamic voice selection and list available voices.
-- **Backend Integration**: Updated `app/main.py` and `app/audio_client.py` to use dynamic settings and hotkeys.
-- **Tray Icon Invisibility**: Fixed by moving server startup to a background thread.
-- **First Request Timeout (Cold Start)**: Fixed by implementing a model warmup routine (pre-generation) in `server/tts_server.py` startup event.
+- Packaging.
 
 **Known Issues:**
 - Server startup takes slightly longer due to warmup (Intentional trade-off for runtime responsiveness).

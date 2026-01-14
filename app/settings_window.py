@@ -2,8 +2,9 @@ import customtkinter as ctk
 import requests
 import threading
 from .settings import settings_manager
+from .region_selector import RegionSelector
 
-class SettingsWindow(ctk.CTK):
+class SettingsWindow(ctk.CTk):
     def __init__(self):
         super().__init__()
 
@@ -28,11 +29,14 @@ class SettingsWindow(ctk.CTK):
         self.general_button = ctk.CTkButton(self.sidebar_frame, text="General", command=self.show_general)
         self.general_button.grid(row=1, column=0, padx=20, pady=10)
 
+        self.capture_button = ctk.CTkButton(self.sidebar_frame, text="Capture", command=self.show_capture)
+        self.capture_button.grid(row=2, column=0, padx=20, pady=10)
+
         self.audio_button = ctk.CTkButton(self.sidebar_frame, text="Audio", command=self.show_audio)
-        self.audio_button.grid(row=2, column=0, padx=20, pady=10)
+        self.audio_button.grid(row=3, column=0, padx=20, pady=10)
 
         self.hotkeys_button = ctk.CTkButton(self.sidebar_frame, text="Hotkeys", command=self.show_hotkeys)
-        self.hotkeys_button.grid(row=3, column=0, padx=20, pady=10)
+        self.hotkeys_button.grid(row=4, column=0, padx=20, pady=10)
 
         # Content areas
         self.content_frame = ctk.CTkFrame(self, corner_radius=0, fg_color="transparent")
@@ -70,6 +74,66 @@ class SettingsWindow(ctk.CTK):
         settings_manager.set("system", "play_startup_sound", self.startup_sound_var.get())
         settings_manager.set("system", "minimize_to_tray", self.minimize_var.get())
 
+    def show_capture(self):
+        self.clear_content()
+        self.current_frame = ctk.CTkFrame(self.content_frame, fg_color="transparent")
+        self.current_frame.grid(row=0, column=0, sticky="nsew")
+
+        label = ctk.CTkLabel(self.current_frame, text="Capture Settings", font=ctk.CTkFont(size=16, weight="bold"))
+        label.grid(row=0, column=0, padx=10, pady=(0, 20), sticky="w")
+
+        # Toggle Region Capture
+        self.use_region_var = ctk.BooleanVar(value=settings_manager.get("capture", "use_region"))
+        self.region_check = ctk.CTkCheckBox(self.current_frame, text="Use Custom Capture Region", 
+                                       variable=self.use_region_var, command=self.toggle_region_use)
+        self.region_check.grid(row=1, column=0, padx=10, pady=10, sticky="w")
+
+        # Region Info & Select Button
+        self.region_info = ctk.CTkLabel(self.current_frame, text=self._get_region_text())
+        self.region_info.grid(row=2, column=0, padx=10, pady=5, sticky="w")
+
+        self.select_btn = ctk.CTkButton(self.current_frame, text="Select New Region", command=self.select_new_region)
+        self.select_btn.grid(row=3, column=0, padx=10, pady=10, sticky="w")
+
+        # Enable/Disable select based on toggle
+        self.toggle_region_use()
+
+    def _get_region_text(self):
+        region = settings_manager.get("capture", "region")
+        if region:
+            return f"Current Region: {region}"
+        return "Current Region: Fullscreen (None selected)"
+
+    def toggle_region_use(self):
+        val = self.use_region_var.get()
+        settings_manager.set("capture", "use_region", val)
+        
+        if val:
+            self.select_btn.configure(state="normal")
+        else:
+            self.select_btn.configure(state="disabled")
+
+    def select_new_region(self):
+        # Minimize settings window to allow clear selection
+        self.iconify()
+        
+        # Open selector
+        selector = RegionSelector(master=self)
+        region = selector.select_region()
+        
+        # Restore settings window
+        self.deiconify()
+        self.lift()
+        
+        if region:
+            settings_manager.set("capture", "region", region)
+            # Auto-enable usage if a region is picked
+            self.use_region_var.set(True)
+            settings_manager.set("capture", "use_region", True)
+            
+            self.region_info.configure(text=self._get_region_text())
+            self.select_btn.configure(state="normal")
+
     def show_audio(self):
         self.clear_content()
         self.current_frame = ctk.CTkFrame(self.content_frame, fg_color="transparent")
@@ -95,12 +159,29 @@ class SettingsWindow(ctk.CTK):
             if resp.status_code == 200:
                 voices = resp.json().get("voices", [])
                 if voices:
-                    self.voice_option.configure(values=voices)
-                    current_voice = settings_manager.get("audio", "voice_key")
-                    if current_voice in voices:
-                        self.voice_option.set(current_voice)
+                    # Schedule UI update on main thread
+                    self.after(0, lambda: self._update_voice_options(voices))
         except:
-            self.voice_option.configure(values=["Server Offline", settings_manager.get("audio", "voice_key")])
+            # Schedule UI update on main thread
+            self.after(0, lambda: self._update_voice_options(["Server Offline"], error=True))
+
+    def _update_voice_options(self, values, error=False):
+        # Check if the widget still exists before updating
+        try:
+            if not self.voice_option.winfo_exists():
+                return
+                
+            if error:
+                # Keep current value if possible, or show offline
+                current = settings_manager.get("audio", "voice_key")
+                self.voice_option.configure(values=["Server Offline", current])
+            else:
+                self.voice_option.configure(values=values)
+                current_voice = settings_manager.get("audio", "voice_key")
+                if current_voice in values:
+                    self.voice_option.set(current_voice)
+        except Exception as e:
+            print(f"Error updating voice options: {e}")
 
     def save_audio(self, selected_voice):
         settings_manager.set("audio", "voice_key", selected_voice)
