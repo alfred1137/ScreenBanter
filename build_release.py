@@ -15,18 +15,23 @@ def build():
     # Define paths
     project_root = os.path.dirname(os.path.abspath(__file__))
     dist_dir = os.path.join(project_root, "dist")
-    output_dir = os.path.join(dist_dir, "ScreenBanter")
     
     # Clean previous build
     if os.path.exists(dist_dir):
         print("Cleaning previous build...")
-        shutil.rmtree(dist_dir)
+        try:
+            shutil.rmtree(dist_dir)
+        except Exception as e:
+            print(f"Warning: Could not clean dist directory: {e}")
     
     # Nuitka arguments
     nuitka_cmd = [
-        "uv", "run", "python", "-m", "nuitka",
+        sys.executable, "-m", "nuitka",
         "--standalone",
+        "--assume-yes-for-downloads", # Avoid hanging in CI
         "--python-flag=no_site",  # Don't use system site-packages
+        
+        # Core packages
         "--include-package=uvicorn",
         "--include-package=fastapi",
         "--include-package=pystray",
@@ -34,13 +39,15 @@ def build():
         "--include-package=numpy",
         "--include-package=torch",
         "--include-package=transformers",
-        "--include-package=engineio.async_drivers.aiohttp", # Common uvicorn missing dependency
+        "--include-package=customtkinter",
+        "--include-package=darkdetect", # Needed by customtkinter
+        "--include-package=engineio.async_drivers.aiohttp", 
+        
+        # Third party
+        "--include-package=third_party",
         
         # Data files
         "--include-data-dir=assets=assets",
-        
-        # GUI/Icon
-        "--windows-icon-from-ico=assets/icon.png",
         
         # Output
         "--output-dir=dist",
@@ -50,13 +57,16 @@ def build():
         "app/main.py"
     ]
 
-    print("Starting Nuitka build... This may take a while.")
+    # Handle Icon if it exists as .ico (Nuitka requirement)
+    # If not .ico, we just skip the flag and let it use default
+    icon_path = os.path.join(project_root, "assets", "icon.ico")
+    if os.path.exists(icon_path):
+        nuitka_cmd.append(f"--windows-icon-from-ico={icon_path}")
+
+    print("Starting Nuitka build... This may take a while (20-40 minutes).")
     run_command(nuitka_cmd)
     
-    # Post-build: Copy external resources that are too big or dynamic to bundle
-    # The output directory for standalone is usually dist/app.main.dist or dist/ScreenBanter.dist
-    # Nuitka naming can be tricky, let's find it.
-    
+    # Post-build: Copy external resources
     build_output_dir = os.path.join(dist_dir, "app.main.dist")
     if not os.path.exists(build_output_dir):
         # Fallback check
@@ -74,9 +84,11 @@ def build():
     src_models = os.path.join(project_root, "models")
     dst_models = os.path.join(build_output_dir, "models")
     if os.path.exists(src_models):
+        if os.path.exists(dst_models):
+            shutil.rmtree(dst_models)
         shutil.copytree(src_models, dst_models)
     else:
-        print("WARNING: models directory not found. User will need to provide it.")
+        print("WARNING: models directory not found.")
 
     # Copy .env example
     print("Copying configuration...")
@@ -84,10 +96,11 @@ def build():
 
     # Rename the folder to ScreenBanter
     final_output = os.path.join(dist_dir, "ScreenBanter_v1.0")
+    if os.path.exists(final_output):
+        shutil.rmtree(final_output)
     os.rename(build_output_dir, final_output)
     
     print(f"\nBuild Complete! Output available at: {final_output}")
-    print("Note: You may need to create a .env file in that directory with your GEMINI_API_KEY.")
 
 if __name__ == "__main__":
     build()

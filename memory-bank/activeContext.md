@@ -1,19 +1,18 @@
 # Active Context: ScreenBanter
 
-**Current Work Focus:** Finalizing manual verification and preparing for standalone packaging. Core features including the Settings GUI and Region Capture are implemented and verified.
+**Current Work Focus:** Completed standalone packaging infrastructure and CI/CD automation. The project is now ready for distribution via GitHub Actions.
 
 **Recent Changes:**
-- **Thread-Safe UI Management**: Fixed `RuntimeError` by implementing a thread-safe window lifecycle flag for the Settings GUI, preventing cross-thread Tkinter access.
-- **Configurable Performance**: Added UI controls for "Process Priority" and "Playback Buffer" (0.5s - 10.0s) to the Settings GUI.
-- **Process Priority Fix**: Refined `ctypes` implementation for Windows priority management with explicit type definitions.
-- **Audio Optimization**: Increased adaptive buffer to 4.0s (now user-configurable) and set application process priority to `ABOVE_NORMAL` by default.
-- **Hotkey Responsiveness**: Refactored `on_process_queue` to run OCR and TTS in a background thread.
+- **Standalone Build Automation**: Implemented GitHub Actions workflow (`.github/workflows/build.yml`) for automated Windows `.exe` generation.
+- **Build Script Optimization**: Refactored `build_release.py` to use `sys.executable`, include `customtkinter` dependencies, and handle CI environments (added `--assume-yes-for-downloads`).
+- **CI/CD Integration**: Configured workflow to run on tags (`v*`) or manual dispatch, uploading a portable ZIP artifact.
+- **Packaging Documentation**: Added instructions for local and CI-based builds to the README and Memory Bank.
 
 **Next Steps:**
-1.  **Packaging (Nuitka)**: Execute and verify `build_release.py` to create a standalone executable.
-2.  **Release Preparation**: Final documentation review and asset check.
+1.  **Tag and Release**: Create a Git tag (e.g., `v1.0.0`) to trigger the first automated production build.
+2.  **User Acceptance**: Download the CI artifact and verify functionality on a fresh machine (ensure `.env` setup is clear).
 
 **Active Decisions and Considerations:**
-- **Threading Model**: The application uses a strict "UI vs Worker" split. The System Tray and Settings GUI are managed carefully to avoid Tkinter's single-thread affinity issues. All heavy processing (Vision, TTS, Playback) is offloaded to daemon threads.
-- **Adaptive Buffering**: We use a "Play-when-ready" strategy where audio starts after either the buffer fills or the stream ends. This provides the best balance between stability and latency.
-- **Background Performance**: By default, we use `ABOVE_NORMAL` priority to ensure the audio playback thread is not starved by other intensive background or foreground applications.
+- **Portable Folder vs. Onefile**: Decided to stick with a portable folder (standalone) zipped into an archive. This avoids the massive startup delay (20s+) associated with extracting a 2GB `onefile` executable containing `torch`.
+- **Model Inclusion**: The build script copies the `models/` directory into the final bundle. Since models are currently tracked in Git, the CI build will include them automatically.
+- **Environment Isolation**: Used `sys.executable` in the build script to ensure Nuitka uses the same `uv` virtual environment it was launched from.

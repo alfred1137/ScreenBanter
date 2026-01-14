@@ -104,8 +104,14 @@ ScreenBanter is an amateur project that tries to marry **Google’s Gemini Visio
 <a id="installation-setup"></a>
 ## 🚀 Installation & Setup
 
-### ✅ Requirements
+### 📥 Download (Standalone Windows)
+The easiest way to use ScreenBanter is to download the latest pre-compiled build:
+1. Go to the **[GitHub Actions](https://github.com/alfred1137/ScreenBanter/actions)** tab.
+2. Select the latest successful **"Build Standalone Windows Executable"** run.
+3. Scroll down to **Artifacts** and download `ScreenBanter_Windows_Executable`.
+4. Extract the ZIP, create a `.env` file with your `GEMINI_KEY`, and run `ScreenBanter.exe`.
 
+### ✅ Requirements (For Developers)
 *   **OS:** Windows 10/11 (Required for `DXcam` and Win32 tray integration).
 *   **GPU:** NVIDIA GPU with CUDA 12.1 support (Highly recommended for VibeVoice latency).
 *   **Build Tools:** [Microsoft Visual C++ Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) (Required for `pyaudio` and `pystray`).
@@ -223,7 +229,7 @@ flowchart TD
 - [x] Settings GUI (Modern UI)
 - [x] Local Neural TTS Integration
 - [x] Dynamic Voice/Device Selection
-- [ ] Standalone Executable Build (.exe)
+- [x] Standalone Executable Build (.exe)
 
 See the [open issues](https://github.com/alfred1137/ScreenBanter/issues) for a full list of proposed features.
 

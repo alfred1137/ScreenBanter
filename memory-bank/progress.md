@@ -1,6 +1,6 @@
 # Progress: ScreenBanter
 
-**Overall Status:** Core development complete. System is stable and fully functional.
+**Overall Status:** Standalone packaging and CI/CD automation complete. The project is ready for release.
 
 **Completed:**
 - `pyproject.toml`: Finalized with pinned `transformers==4.51.3` and CUDA PyTorch dependencies.
@@ -13,35 +13,28 @@
 - **Git Hygiene**: Created `.env.example`.
 - **Multi-Screenshot Support**: Implemented F10 (Queue) and F11 (Process) logic.
 - **Audio Feedback**: Implemented non-blocking capture sound (`winsound.Beep`).
-- **Icon Update**: Replaced default icon with custom `assets/icon.svg`. Generated 64x64 `assets/icon.png` for system tray and executable. Updated README and build script.
+- **Icon Update**: Replaced default icon with custom `assets/icon.svg`. Generated 64x64 `assets/icon.png` for system tray and executable.
 - **OCR Logging**: Implemented timestamped logging to `logs/ocr.log`.
 - **Settings GUI**: Full implementation including General, Audio, and Hotkey configuration using `CustomTkinter`.
 - **Region Capture**: Implemented transparent overlay for defining capture areas (`app/region_selector.py`) and integrated with `dxcam`.
 - **Settings Persistence**: Implemented `SettingsManager` in `app/settings.py` for `settings.json` handling.
-- **Server API Update**: Updated `server/tts_server.py` and `server/model_loader.py` to support dynamic voice selection and list available voices.
 - **Backend Integration**: Updated `app/main.py` and `app/audio_client.py` to use dynamic settings and hotkeys.
-- **Tray Icon Invisibility**: Fixed by moving server startup to a background thread.
-- **First Request Timeout (Cold Start)**: Fixed by implementing a model warmup routine (pre-generation) in `server/tts_server.py` startup event.
-- **Stability Fixes**:
-    - **Critical**: Fixed server shutdown on Windows by using `CREATE_NEW_PROCESS_GROUP` to isolate from console signals.
-    - **Critical**: Fixed server environment inheritance by using `sys.executable`.
-    - Resolved startup announcement cutoff by threading the audio call.
-    - Fixed application hang on TTS failure by increasing timeout to 45s.
-    - Improved server startup logic to handle existing instances gracefully.
-    - Added persistent server-side logging (`logs/server_stdout.log`, `logs/server_stderr.log`).
-- **Cleanup**: Removed temporary test files (`check_cuda.py`, `test_tts_stream_v2.py`, etc.).
+- **Stability Fixes**: Isolated server process signals, fixed environment inheritance, and implemented model warmup.
+- **Standalone Packaging**:
+    - Refactored `build_release.py` for Nuitka standalone builds.
+    - Implemented **GitHub Actions** (`.github/workflows/build.yml`) for automated builds.
+    - Verified CI dependency synchronization and artifact generation logic.
 
 **Remaining:**
-- **[Final Step]** Standalone packaging (Script prepared: `build_release.py`).
+- **[Deployment]** Create first release tag (`v1.0.0`).
 
 **In Progress:**
-- Packaging.
+- Final documentation review.
 
 **Known Issues:**
-- Server startup takes slightly longer due to warmup (Intentional trade-off for runtime responsiveness).
+- Nuitka build time is significant (20-40 mins) due to C++ compilation of `torch` and `transformers`.
 
 **Decision History:**
-- *Interruption Recovery*: Fully aligned with official VibeVoice developer patterns.
-- *Dependency Pinning*: Forced specific PyTorch and Transformers versions to ensure stability.
-- *Audio Threading*: Decoupled audio playback from the main UI thread to prevent blocking and premature termination.
-- *Timeout Adjustment*: Increased client-side timeout to 45s to accommodate VibeVoice's initial processing time on consumer hardware.
+- *Build Strategy*: Preferred Nuitka Standalone over PyInstaller for better stability and obfuscation.
+- *CI Choice*: GitHub Actions selected to offload heavy build tasks and ensure environment consistency.
+- *Artifact Type*: Portable ZIP archive chosen over Single-File EXE to avoid high startup latency.
