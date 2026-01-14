@@ -6,6 +6,7 @@ import time
 import requests
 import datetime
 import threading
+import ctypes
 from dotenv import load_dotenv
 from PIL import Image
 import pystray
@@ -23,6 +24,7 @@ import winsound
 
 class ScreenBanterApp:
     def __init__(self):
+        self.set_process_priority()
         self.capturer = ScreenCapturer()
         self.vision = VisionEngine()
         self.audio = AudioClient()
@@ -31,9 +33,39 @@ class ScreenBanterApp:
         self.stdout_log = None
         self.stderr_log = None
         self.screenshot_queue = []
+        self.settings_win = None
+        self.settings_win_open = False
         self.log_dir = "logs"
         if not os.path.exists(self.log_dir):
             os.makedirs(self.log_dir)
+
+    def set_process_priority(self):
+        """
+        Sets the process priority based on user settings.
+        Default is ABOVE_NORMAL_PRIORITY_CLASS (0x00008000).
+        """
+        priority_map = {
+            "normal": 0x00000020,
+            "above_normal": 0x00008000,
+            "high": 0x00000080
+        }
+        
+        setting = settings_manager.get("system", "priority") or "above_normal"
+        priority_class = priority_map.get(setting.lower(), 0x00008000)
+
+        try:
+            # Set argtypes and restype for Windows API calls for reliability
+            ctypes.windll.kernel32.SetPriorityClass.argtypes = [ctypes.c_void_p, ctypes.c_uint32]
+            ctypes.windll.kernel32.SetPriorityClass.restype = ctypes.c_bool
+            ctypes.windll.kernel32.GetCurrentProcess.restype = ctypes.c_void_p
+
+            handle = ctypes.windll.kernel32.GetCurrentProcess()
+            if ctypes.windll.kernel32.SetPriorityClass(handle, priority_class):
+                print(f"DEBUG: Process priority set to {setting.upper()}.")
+            else:
+                print(f"DEBUG: Failed to set process priority.")
+        except Exception as e:
+            print(f"DEBUG: Error setting process priority: {e}")
 
     def log_ocr_result(self, text):
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -167,27 +199,36 @@ class ScreenBanterApp:
             print("DEBUG: Queue is empty.")
             return
 
-        print(f"DEBUG: Processing queue of {len(self.screenshot_queue)} images...")
-        try:
-            # If it's a single image, vision engine handles it
-            # If it's multiple, vision engine handles that too
-            input_data = self.screenshot_queue if len(self.screenshot_queue) > 1 else self.screenshot_queue[0]
-            
-            text = self.vision.extract_text(input_data)
-            self.screenshot_queue = [] # Clear after sending
-            
-            if text and text.lower() != "no text identified":
-                print(f"DEBUG: OCR Result: {text[:100]}...")
-                self.log_ocr_result(text)
+        # Snapshot the queue to process and clear the main queue immediately
+        # This allows the user to capture new screenshots while the previous batch is processing
+        images_to_process = list(self.screenshot_queue)
+        self.screenshot_queue = [] 
+        
+        print(f"DEBUG: Processing queue of {len(images_to_process)} images in background...")
+
+        def _process_task(images):
+            try:
+                # If it's a single image, vision engine handles it
+                # If it's multiple, vision engine handles that too
+                input_data = images if len(images) > 1 else images[0]
                 
-                voice_key = settings_manager.get_audio_config().get("voice_key")
-                self.audio.stream_and_play(text, voice_key=voice_key)
-            else:
-                print("DEBUG: No text identified in queue.")
-        except Exception as e:
-            print(f"ERROR in on_process_queue: {e}")
-            import traceback
-            traceback.print_exc()
+                text = self.vision.extract_text(input_data)
+                
+                if text and text.lower() != "no text identified":
+                    print(f"DEBUG: OCR Result: {text[:100]}...")
+                    self.log_ocr_result(text)
+                    
+                    voice_key = settings_manager.get_audio_config().get("voice_key")
+                    self.audio.stream_and_play(text, voice_key=voice_key)
+                else:
+                    print("DEBUG: No text identified in queue.")
+            except Exception as e:
+                print(f"ERROR in processing task: {e}")
+                import traceback
+                traceback.print_exc()
+
+        # Run OCR and TTS in a separate thread to avoid blocking the hotkey listener
+        threading.Thread(target=_process_task, args=(images_to_process,), daemon=True).start()
 
     def play_startup_sound(self):
         if not settings_manager.get("system", "play_startup_sound"):
@@ -260,13 +301,31 @@ class ScreenBanterApp:
         from .settings_window import SettingsWindow
         
         def _open_gui():
-            # Check if window already exists (simple prevention)
-            if hasattr(self, 'settings_win') and self.settings_win.winfo_exists():
-                self.settings_win.focus()
+            if self.settings_win_open:
+                try:
+                    self.settings_win.focus()
+                    self.settings_win.lift()
+                except:
+                    pass
                 return
                 
-            self.settings_win = SettingsWindow()
-            self.settings_win.mainloop()
+            try:
+                self.settings_win_open = True
+                self.settings_win = SettingsWindow()
+                
+                # Update settings_win_open if window is closed
+                def on_close():
+                    self.settings_win_open = False
+                    self.settings_win.destroy()
+                    self.settings_win = None
+                
+                self.settings_win.protocol("WM_DELETE_WINDOW", on_close)
+                self.settings_win.mainloop()
+            except Exception as e:
+                print(f"DEBUG: Error in settings window: {e}")
+            finally:
+                self.settings_win_open = False
+                self.settings_win = None
 
         # Run GUI in a separate thread to not block the icon/hotkeys
         threading.Thread(target=_open_gui, daemon=True).start()

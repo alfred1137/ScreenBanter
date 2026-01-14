@@ -37,7 +37,7 @@ flowchart TD
 **Design Patterns in Use:**
 - **Client-Server Architecture:** Decoupled Frontend Daemon and Inference Server allows for independent restarting and potential remote deployment.
 - **Streaming Pattern:** Audio chunks are yielded immediately upon generation, reducing time-to-first-byte.
-- **Producer-Consumer:** The `AudioClient` uses a thread-safe queue to buffer incoming audio chunks for the playback worker.
+- **Producer-Consumer:** The `AudioClient` uses a thread-safe queue to buffer incoming audio chunks. It includes a pre-buffering stage where playback is delayed until a threshold (default 2.0s) is met to ensure continuity under load.
 
 **Component Relationships:**
 

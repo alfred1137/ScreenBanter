@@ -12,7 +12,8 @@ class SettingsManager:
         "audio": {
             "voice_key": "en-Davis_man",
             "volume": 1.0,
-            "speed": 1.0
+            "speed": 1.0,
+            "buffer_seconds": 4.0
         },
         "capture": {
             "use_region": True,
@@ -20,7 +21,8 @@ class SettingsManager:
         },
         "system": {
             "minimize_to_tray": True,
-            "play_startup_sound": True
+            "play_startup_sound": True,
+            "priority": "above_normal"
         }
     }
 

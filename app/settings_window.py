@@ -70,9 +70,26 @@ class SettingsWindow(ctk.CTk):
                                          variable=self.minimize_var, command=self.save_general)
         minimize_check.grid(row=2, column=0, padx=10, pady=10, sticky="w")
 
+        # Process Priority
+        priority_label = ctk.CTkLabel(self.current_frame, text="Process Priority (OS Scheduling):")
+        priority_label.grid(row=3, column=0, padx=10, pady=(10, 0), sticky="w")
+        
+        priority_hint = ctk.CTkLabel(self.current_frame, text="Higher priority reduces stuttering under load.", 
+                                     font=ctk.CTkFont(size=10, slant="italic"))
+        priority_hint.grid(row=4, column=0, padx=10, pady=(0, 5), sticky="w")
+
+        self.priority_option = ctk.CTkOptionMenu(self.current_frame, 
+                                                values=["Normal", "Above_Normal", "High"],
+                                                command=lambda _: self.save_general())
+        self.priority_option.grid(row=5, column=0, padx=10, pady=5, sticky="w")
+        
+        current_priority = settings_manager.get("system", "priority") or "above_normal"
+        self.priority_option.set(current_priority.capitalize())
+
     def save_general(self):
         settings_manager.set("system", "play_startup_sound", self.startup_sound_var.get())
         settings_manager.set("system", "minimize_to_tray", self.minimize_var.get())
+        settings_manager.set("system", "priority", self.priority_option.get().lower())
 
     def show_capture(self):
         self.clear_content()
@@ -150,8 +167,36 @@ class SettingsWindow(ctk.CTk):
         self.voice_option.grid(row=2, column=0, padx=10, pady=5, sticky="w")
         self.voice_option.set(settings_manager.get("audio", "voice_key"))
 
+        # Buffering Slider
+        self.buffer_val = settings_manager.get("audio", "buffer_seconds") or 4.0
+        self.buffer_label = ctk.CTkLabel(self.current_frame, text=f"Playback Buffer: {self.buffer_val:.1f}s")
+        self.buffer_label.grid(row=3, column=0, padx=10, pady=(20, 0), sticky="w")
+        
+        buffer_hint = ctk.CTkLabel(self.current_frame, text="Increases delay but prevents stuttering under high GPU/CPU usage.", 
+                                     font=ctk.CTkFont(size=10, slant="italic"), wraplength=350, justify="left")
+        buffer_hint.grid(row=4, column=0, padx=10, pady=(0, 5), sticky="w")
+
+        self.buffer_slider = ctk.CTkSlider(self.current_frame, from_=0.5, to=10.0, 
+                                          command=self.update_buffer_label)
+        self.buffer_slider.grid(row=5, column=0, padx=10, pady=5, sticky="ew")
+        self.buffer_slider.set(self.buffer_val)
+        
+        save_buffer_btn = ctk.CTkButton(self.current_frame, text="Apply Buffer", command=self.save_buffer)
+        save_buffer_btn.grid(row=6, column=0, padx=10, pady=10, sticky="w")
+
         # Fetch voices from server in background
         threading.Thread(target=self.fetch_voices, daemon=True).start()
+
+    def update_buffer_label(self, val):
+        self.buffer_label.configure(text=f"Playback Buffer: {float(val):.1f}s")
+
+    def save_buffer(self):
+        val = round(float(self.buffer_slider.get()), 1)
+        settings_manager.set("audio", "buffer_seconds", val)
+        # Inform user
+        info = ctk.CTkLabel(self.current_frame, text=f"Buffer updated to {val}s", text_color="green")
+        info.grid(row=7, column=0, padx=10, pady=5, sticky="w")
+        self.after(2000, info.destroy)
 
     def fetch_voices(self):
         try:
