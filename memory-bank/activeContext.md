@@ -1,6 +1,6 @@
 # Active Context: ScreenBanter
 
-**Current Work Focus:** Packaging and Settings Planning. The core application is stable, and we are now defining the architecture for user customization and final distribution.
+**Current Work Focus:** Settings GUI Implementation. We are building the user-facing configuration layer to allow customization of Hotkeys, Voices, and System behavior.
 
 **Recent Changes:**
 - **Feature Planning**: Defined the comprehensive Settings GUI feature set, including TTS configuration, Vision style, Capture modes, and Performance optimization.
@@ -22,7 +22,14 @@
     - Audio feedback and OCR logging.
 
 **Next Steps:**
-1.  **Packaging (Nuitka)**: Execute `build_release.py` to create the standalone distribution. This is the final major task.
+1.  **Settings Persistence (`app/settings.py`)**: Implement `SettingsManager` to handle `settings.json` load/save with default configurations (Hotkeys, Audio, System).
+2.  **Server API Update (`server/tts_server.py`)**:
+    *   Expose `GET /v1/voices` to list available voice presets.
+    *   Update `TTSRequest` to accept `voice_key`.
+    *   Update logic to pass `voice_key` to VibeVoice.
+3.  **Application Integration**: Update `app/main.py` and `app/audio_client.py` to utilize dynamic settings.
+4.  **Settings GUI (`app/settings_window.py`)**: Build the `CustomTkinter` interface for user interaction.
+5.  **Packaging (Nuitka)**: Execute `build_release.py` to create the standalone distribution.
 
 **Active Decisions and Considerations:**
 - **Priority Shift: Settings vs. Packaging**: We have decided to prioritize the implementation of the Settings GUI over final standalone packaging. This ensures that the first distributed version is user-customizable (voices, hotkeys, audio devices) and that all dependencies (e.g., `customtkinter`) are captured during the final build process.

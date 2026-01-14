@@ -143,6 +143,10 @@ class VibeVoiceManager:
             
         print(f"[startup] Found {len(self.voice_presets)} voice presets. Default: {self.default_voice_key}")
 
+    def get_available_voices(self) -> List[str]:
+        """Returns a list of available voice keys."""
+        return sorted(list(self.voice_presets.keys()))
+
     def _ensure_voice_cached(self, key: str):
         if key not in self.voice_presets:
             raise RuntimeError(f"Voice preset {key!r} not found")

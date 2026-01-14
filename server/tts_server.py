@@ -11,6 +11,7 @@ manager, device = load_vibevoice_model()
 
 class TTSRequest(pydantic.BaseModel):
     text: str
+    voice_key: str = None
 
 @app.post("/v1/audio/stream")
 async def stream_tts(request: TTSRequest):
@@ -20,7 +21,13 @@ async def stream_tts(request: TTSRequest):
     if not request.text.strip():
         raise HTTPException(status_code=400, detail="Text cannot be empty")
 
-    return StreamingResponse(manager.stream_audio(request.text), media_type="audio/wav")
+    return StreamingResponse(manager.stream_audio(request.text, voice_key=request.voice_key), media_type="audio/wav")
+
+@app.get("/v1/voices")
+async def get_voices():
+    if not manager:
+        raise HTTPException(status_code=503, detail="TTS model not loaded")
+    return {"voices": manager.get_available_voices()}
 
 @app.on_event("startup")
 async def warmup_model():

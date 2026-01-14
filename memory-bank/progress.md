@@ -26,18 +26,17 @@
 
 **Remaining:**
 - **[High Priority]** Implement Settings GUI:
-    - Settings Persistence Layer (`settings.json`).
     - CustomTkinter-based GUI window.
-    - Integration with VibeVoice/Gemini parameters.
     - Region capture selection UI.
 - **[Final Step]** Standalone packaging (Script prepared: `build_release.py`).
 
 **In Progress:**
-- Settings GUI Infrastructure (Persistence Layer).
-- Documentation of Settings Architecture and Planning.
-- Verifying complete fix (Tray Icon + Warmup).
+- Settings GUI Implementation (Backend complete, frontend next).
 
 **Resolved:**
+- **Settings Persistence**: Implemented `SettingsManager` in `app/settings.py` for `settings.json` handling.
+- **Server API Update**: Updated `server/tts_server.py` and `server/model_loader.py` to support dynamic voice selection and list available voices.
+- **Backend Integration**: Updated `app/main.py` and `app/audio_client.py` to use dynamic settings and hotkeys.
 - **Tray Icon Invisibility**: Fixed by moving server startup to a background thread.
 - **First Request Timeout (Cold Start)**: Fixed by implementing a model warmup routine (pre-generation) in `server/tts_server.py` startup event.
 

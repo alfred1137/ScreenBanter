@@ -14,6 +14,7 @@ from global_hotkeys import register_hotkeys, start_checking_hotkeys, stop_checki
 from .capture import ScreenCapturer
 from .vision import VisionEngine
 from .audio_client import AudioClient
+from .settings import settings_manager
 
 # Load configuration
 load_dotenv()
@@ -172,7 +173,9 @@ class ScreenBanterApp:
             if text and text.lower() != "no text identified":
                 print(f"DEBUG: OCR Result: {text[:100]}...")
                 self.log_ocr_result(text)
-                self.audio.stream_and_play(text)
+                
+                voice_key = settings_manager.get_audio_config().get("voice_key")
+                self.audio.stream_and_play(text, voice_key=voice_key)
             else:
                 print("DEBUG: No text identified in queue.")
         except Exception as e:
@@ -181,10 +184,14 @@ class ScreenBanterApp:
             traceback.print_exc()
 
     def play_startup_sound(self):
+        if not settings_manager.get("system", "play_startup_sound"):
+            return
+
         def _play():
             try:
-                tts_msg = "Screen Banter is active. F 10 to queue, F 11 to narrate queue."
-                self.audio.stream_and_play(tts_msg)
+                tts_msg = "Screen Banter is active. Check settings for controls."
+                voice_key = settings_manager.get_audio_config().get("voice_key")
+                self.audio.stream_and_play(tts_msg, voice_key=voice_key)
             except Exception as e:
                 print(f"Failed to play startup sound: {e}")
         
@@ -201,18 +208,35 @@ class ScreenBanterApp:
                 self.icon.notify("ScreenBanter is ready!", "Startup Complete")
             
             print("Registering hotkeys...")
-            bindings = [
-                ["control + alt + s", None, self.on_trigger],
-                ["f10", None, self.on_queue_screenshot],
-                ["f11", None, self.on_process_queue],
-            ]
-            register_hotkeys(bindings)
-            start_checking_hotkeys()
-
-            ready_msg = "ScreenBanter is active. F10 to queue, F11 to narrate queue, Ctrl+Alt+S for instant."
-            print(ready_msg)
             
-            self.play_startup_sound()
+            # Load hotkeys from settings
+            trigger_key = settings_manager.get_hotkey("trigger")
+            queue_key = settings_manager.get_hotkey("queue")
+            process_key = settings_manager.get_hotkey("process")
+            
+            print(f"  Trigger: {trigger_key}")
+            print(f"  Queue: {queue_key}")
+            print(f"  Process: {process_key}")
+
+            bindings = [
+                [trigger_key, None, self.on_trigger],
+                [queue_key, None, self.on_queue_screenshot],
+                [process_key, None, self.on_process_queue],
+            ]
+            
+            try:
+                register_hotkeys(bindings)
+                start_checking_hotkeys()
+                
+                ready_msg = f"ScreenBanter is active.\n{queue_key} to queue, {process_key} to narrate queue, {trigger_key} for instant."
+                print(ready_msg)
+                
+                self.play_startup_sound()
+            except Exception as e:
+                print(f"Error registering hotkeys: {e}")
+                if self.icon:
+                    self.icon.notify(f"Hotkey Error: {e}", "Error")
+
         else:
             if self.icon:
                 self.icon.title = "ScreenBanter: Server Failed"
@@ -225,13 +249,32 @@ class ScreenBanterApp:
         # Run initialization in a separate thread so the icon appears immediately
         threading.Thread(target=self.init_backend, daemon=True).start()
 
+    def on_settings(self, icon=None):
+        """Opens the settings window."""
+        from .settings_window import SettingsWindow
+        
+        def _open_gui():
+            # Check if window already exists (simple prevention)
+            if hasattr(self, 'settings_win') and self.settings_win.winfo_exists():
+                self.settings_win.focus()
+                return
+                
+            self.settings_win = SettingsWindow()
+            self.settings_win.mainloop()
+
+        # Run GUI in a separate thread to not block the icon/hotkeys
+        threading.Thread(target=_open_gui, daemon=True).start()
+
     def run(self):
         try:
             image = Image.open("assets/icon.png")
         except FileNotFoundError:
             image = Image.new('RGB', (64, 64), color=(73, 109, 137))
             
-        menu = pystray.Menu(pystray.MenuItem('Exit', self.on_exit))
+        menu = pystray.Menu(
+            pystray.MenuItem('Settings', self.on_settings),
+            pystray.MenuItem('Exit', self.on_exit)
+        )
         self.icon = pystray.Icon("ScreenBanter", image, "ScreenBanter: Initializing...", menu)
 
         self.icon.run(setup=self.setup_app)

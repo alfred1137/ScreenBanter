@@ -53,7 +53,7 @@ class AudioClient:
                 self.stream.close()
                 self.stream = None
 
-    def stream_and_play(self, text):
+    def stream_and_play(self, text, voice_key=None):
         """
         Requests audio stream from server and queues chunks for playback.
         """
@@ -61,7 +61,7 @@ class AudioClient:
             print("DEBUG: Empty text, skipping audio.")
             return
 
-        print(f"DEBUG: Requesting audio for text: {text[:30]}...")
+        print(f"DEBUG: Requesting audio for text: {text[:30]}... (Voice: {voice_key})")
         self.is_playing = True
         play_thread = threading.Thread(target=self._play_worker)
         play_thread.start()
@@ -69,7 +69,11 @@ class AudioClient:
         chunks_received = 0
         try:
             # Increased timeout to 45s to handle model warm-up and long generation times
-            response = requests.post(self.server_url, json={"text": text}, stream=True, timeout=45)
+            payload = {"text": text}
+            if voice_key:
+                payload["voice_key"] = voice_key
+                
+            response = requests.post(self.server_url, json=payload, stream=True, timeout=45)
             response.raise_for_status()
             
             for chunk in response.iter_content(chunk_size=1024):
