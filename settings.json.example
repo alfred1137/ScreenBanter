@@ -1,0 +1,20 @@
+{
+    "hotkeys": {
+        "trigger": "control + alt + s",
+        "queue": "f10",
+        "process": "f11"
+    },
+    "audio": {
+        "voice_key": "en-Davis_man",
+        "volume": 1.0,
+        "speed": 1.0
+    },
+    "capture": {
+        "use_region": false,
+        "region": null
+    },
+    "system": {
+        "minimize_to_tray": true,
+        "play_startup_sound": true
+    }
+}
