@@ -4,6 +4,7 @@
 - **Python:** 3.10+ (Required for compatibility with certain ML libraries).
 - **Google Gemini 2.0 Flash Lite API:** For high-speed, multi-modal OCR.
 - **Microsoft VibeVoice-0.5B:** Local TTS model, running on `torch` with CUDA acceleration.
+- **bitsandbytes:** 8-bit/4-bit optimization for model quantization.
 - **FastAPI/Uvicorn:** Backend server infrastructure.
 - **DXcam:** Windows-specific high-speed screen capture.
 - **PyAudio:** Low-level audio playback.

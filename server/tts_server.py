@@ -3,6 +3,9 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import StreamingResponse
 from .model_loader import load_vibevoice_model
 import pydantic
+import psutil
+import os
+import sys
 
 app = FastAPI(title="ScreenBanter TTS Server")
 
@@ -30,11 +33,20 @@ async def get_voices():
     return {"voices": manager.get_available_voices()}
 
 @app.on_event("startup")
-async def warmup_model():
+async def startup_sequence():
     """
-    Warms up the VibeVoice model by loading the default voice and running a short generation.
-    This moves the 'cold start' latency to the server startup phase, rather than the first user request.
+    Initializes system priority and warms up the VibeVoice model.
     """
+    # 1. Set Process Priority
+    try:
+        p = psutil.Process(os.getpid())
+        if sys.platform == "win32":
+            p.nice(psutil.HIGH_PRIORITY_CLASS)
+            print("✅ Process priority set to HIGH_PRIORITY_CLASS")
+    except Exception as e:
+        print(f"⚠️ Failed to set high priority: {e}")
+
+    # 2. Warmup Model
     if manager:
         print("[Warmup] Starting model warmup...")
         try:

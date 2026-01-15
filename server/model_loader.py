@@ -8,6 +8,7 @@ import traceback
 from pathlib import Path
 from typing import Iterator, Optional, Dict, Tuple, Any, Callable, List
 from huggingface_hub import snapshot_download
+from transformers import BitsAndBytesConfig
 from dotenv import load_dotenv
 
 import sys
@@ -35,6 +36,17 @@ except ImportError as e:
 load_dotenv()
 
 SAMPLE_RATE = 24_000
+
+class DictWithAttrs(dict):
+    """
+    A dictionary that allows access to keys as attributes.
+    Used to wrap converted ModelOutput dictionaries.
+    """
+    def __getattr__(self, name):
+        try:
+            return self[name]
+        except KeyError:
+            raise AttributeError(name)
 
 class VibeVoiceManager:
     """
@@ -73,12 +85,25 @@ class VibeVoiceManager:
         self.processor = VibeVoiceStreamingProcessor.from_pretrained(self.model_path)
 
         # Decide dtype & attention (Mirroring official demo logic)
+        load_in_4bit = os.getenv("LOAD_IN_4BIT", "true").lower() == "true"
+        quantization_config = None
+
         if self.device == "cuda":
-            load_dtype = torch.bfloat16
+            # Optimization: Use float16 for better Tensor Core utilization on RTX cards
+            load_dtype = torch.float16
             device_map = 'cuda'
             attn_impl = "flash_attention_2"
             gpu_name = torch.cuda.get_device_name(0)
             print(f"✅ GPU detected: {gpu_name}")
+
+            if load_in_4bit:
+                print(f"⚡ 4-bit Quantization Enabled (BitsAndBytes)")
+                quantization_config = BitsAndBytesConfig(
+                    load_in_4bit=True,
+                    bnb_4bit_compute_dtype=torch.float16,
+                    bnb_4bit_use_double_quant=True,
+                    bnb_4bit_quant_type="nf4",
+                )
         else:
             load_dtype = torch.float32
             device_map = 'cpu'
@@ -93,6 +118,7 @@ class VibeVoiceManager:
                 torch_dtype=load_dtype,
                 device_map=device_map,
                 attn_implementation=attn_impl,
+                quantization_config=quantization_config,
             )
         except Exception as e:
             if attn_impl == 'flash_attention_2':
@@ -102,6 +128,7 @@ class VibeVoiceManager:
                     torch_dtype=load_dtype,
                     device_map=device_map,
                     attn_implementation='sdpa',
+                    quantization_config=quantization_config,
                 )
                 print("Load model with SDPA successful")
             else:
@@ -147,6 +174,41 @@ class VibeVoiceManager:
         """Returns a list of available voice keys."""
         return sorted(list(self.voice_presets.keys()))
 
+    def _cast_recursive(self, obj, target_dtype):
+        if torch.is_tensor(obj):
+            if obj.is_floating_point():
+                return obj.to(device=self._torch_device, dtype=target_dtype)
+            else:
+                return obj.to(device=self._torch_device)
+        elif isinstance(obj, dict):
+            new_data = {}
+            # robustly gather all fields/keys
+            keys = set(obj.keys())
+            if hasattr(obj, "__dict__"):
+                keys.update(k for k in obj.__dict__ if not k.startswith("_"))
+            
+            for k in keys:
+                try:
+                    val = obj[k] if k in obj else getattr(obj, k)
+                    new_data[k] = self._cast_recursive(val, target_dtype)
+                except Exception:
+                    continue # Skip inaccessible keys
+            return DictWithAttrs(new_data)
+        elif isinstance(obj, list):
+            return [self._cast_recursive(v, target_dtype) for v in obj]
+        elif isinstance(obj, tuple):
+            return tuple(self._cast_recursive(v, target_dtype) for v in obj)
+        
+        # Handle Transformers DynamicCache (past_key_values container)
+        if type(obj).__name__ == "DynamicCache":
+             if hasattr(obj, "key_cache"):
+                 obj.key_cache = self._cast_recursive(obj.key_cache, target_dtype)
+             if hasattr(obj, "value_cache"):
+                 obj.value_cache = self._cast_recursive(obj.value_cache, target_dtype)
+             return obj
+             
+        return obj
+
     def _ensure_voice_cached(self, key: str):
         if key not in self.voice_presets:
             raise RuntimeError(f"Voice preset {key!r} not found")
@@ -159,6 +221,11 @@ class VibeVoiceManager:
                 map_location=self._torch_device,
                 weights_only=False,
             )
+            
+            # Determine target dtype based on device configuration
+            target_dtype = torch.float16 if self.device == "cuda" else torch.float32
+            prefilled_outputs = self._cast_recursive(prefilled_outputs, target_dtype)
+
             self._voice_cache[key] = prefilled_outputs
 
         return self._voice_cache[key]

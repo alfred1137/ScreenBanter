@@ -38,6 +38,7 @@ dependencies = [
     "google-genai>=1.56.0",
     "pyaudio>=0.2.14",
     "customtkinter",
+    "bitsandbytes>=0.49.1",
 ]
 
 [project.optional-dependencies]

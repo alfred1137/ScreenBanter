@@ -3,10 +3,16 @@
 **Overall Status:** Standalone packaging and CI/CD automation complete. The project is ready for release.
 
 **Completed:**
-- `pyproject.toml`: Finalized with pinned `transformers==4.51.3` and CUDA PyTorch dependencies.
+- `pyproject.toml`: Finalized with pinned `transformers==4.51.3`, CUDA PyTorch, and added `bitsandbytes` for optimization.
 - **Environment Integration**: Verified CUDA 12.1 detection for RTX 3060 Ti.
-- `server/model_loader.py`: Achieved full parity with official VibeVoice demo.
-- `server/tts_server.py`: Verified functional on `localhost:8000`.
+- `server/model_loader.py`:
+    - Achieved full parity with official VibeVoice demo.
+    - Implemented **4-bit Quantization** via `bitsandbytes` to reduce VRAM usage (<500MB).
+    - Optimized inference using **Float16** for better RTX Tensor Core utilization.
+    - Fixed complex KV-cache casting bug for `DynamicCache` containers during FP16 conversion.
+- `server/tts_server.py`:
+    - Verified functional on `localhost:8000`.
+    - Implemented OS-level **Process Prioritization** (`HIGH_PRIORITY_CLASS`) on Windows to prevent gaming-induced throttling.
 - **Vision Success**: Gemini `models/gemini-flash-lite-latest` confirmed functional with `assets/BBEventSample.webp`.
 - **Audio Success**: Native `pyaudio` playback confirmed functional.
 - **Integration Test**: Successfully ran end-to-end "Sample Image -> Gemini -> VibeVoice -> Speakers" loop.

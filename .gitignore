@@ -210,3 +210,5 @@ __marimo__/
 
 # User settings
 settings.json
+.gemini/
+gha-creds-*.json
