@@ -1,8 +1,10 @@
 # Active Context: ScreenBanter
 
-**Current Work Focus:** Optimizing TTS performance for high-load gaming environments and enhancing user experience with a visual HUD.
+**Current Work Focus:** Fixing CI build failure for v1.1.0 release.
 
 **Recent Changes:**
+- **Build Fix**:
+    - Modified `build_release.py` to set `--jobs=1` for Nuitka. This limits compilation parallelism to prevent the "out of heap space" (C1002) error on memory-constrained GitHub Actions runners.
 - **Performance Mode Implementation**:
     - Added "Performance Mode" toggle in Settings GUI.
     - Integrated `bitsandbytes` 4-bit quantization support via `LOAD_IN_4BIT` environment variable injection.

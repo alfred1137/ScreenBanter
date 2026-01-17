@@ -37,6 +37,7 @@ def build():
         sys.executable, "-m", "nuitka",
         "--standalone",
         "--assume-yes-for-downloads", # Avoid hanging in CI
+        "--jobs=1",                   # Limit parallelism to reduce memory usage in CI
         "--python-flag=no_site",      # Don't use system site-packages
         
         # Plugins

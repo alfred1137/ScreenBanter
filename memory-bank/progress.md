@@ -34,14 +34,14 @@
     - Implemented **GitHub Actions** (`.github/workflows/build.yml`) for automated builds.
 
 **Remaining:**
-- **[Deployment]** Create release tag (`v1.1.0`).
+- **[Deployment]** Trigger GitHub Action to verify the build fix (Issue #6) and create release tag (`v1.1.0`).
 - **[Testing]** User validation of Performance Mode impact on frame rates.
 
 **In Progress:**
-- Final verification of HUD behavior in full-screen games.
+- Verifying the build fix for Issue #6.
 
 **Known Issues:**
-- Nuitka build time is significant (20-40 mins).
+- Nuitka build time is significant (20-40 mins), and now likely longer with `--jobs=1` but should be stable.
 
 **Decision History:**
 - *GUI Threading*: Moved to a single persistent background thread for `CustomTkinter` (HUD + Settings) to allow non-blocking system tray operation while maintaining a valid Tcl event loop.
