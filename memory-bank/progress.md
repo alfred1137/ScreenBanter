@@ -1,6 +1,6 @@
 # Progress: ScreenBanter
 
-**Overall Status:** Feature Complete. Performance Mode and HUD implemented. Ready for v1.1.0 release.
+**Overall Status:** Feature Complete. Performance Mode and HUD implemented. Ready for v0.1.0 release.
 
 **Completed:**
 - **Performance Mode**:
@@ -34,7 +34,7 @@
     - Implemented **GitHub Actions** (`.github/workflows/build.yml`) for automated builds.
 
 **Remaining:**
-- **[Deployment]** Trigger GitHub Action to verify the build fix (Issue #6) and create release tag (`v1.1.0`).
+- **[Deployment]** Create release tag (`v0.1.0`).
 - **[Testing]** User validation of Performance Mode impact on frame rates.
 
 **In Progress:**

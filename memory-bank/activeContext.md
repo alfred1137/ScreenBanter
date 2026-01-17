@@ -1,8 +1,9 @@
 # Active Context: ScreenBanter
 
-**Current Work Focus:** Fixing CI build failure for v1.1.0 release.
+**Current Work Focus:** Preparing v0.1.0 release and fixing CI build failure.
 
 **Recent Changes:**
+- **Versioning Alignment**: Decided to version the current release as `v0.1.0` to match `pyproject.toml` and reset the baseline for public availability.
 - **Build Fix**:
     - Modified `build_release.py` to set `--jobs=1` for Nuitka. This limits compilation parallelism to prevent the "out of heap space" (C1002) error on memory-constrained GitHub Actions runners.
 - **Performance Mode Implementation**:
