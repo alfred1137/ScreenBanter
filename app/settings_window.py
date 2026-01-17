@@ -4,9 +4,9 @@ import threading
 from .settings import settings_manager
 from .region_selector import RegionSelector
 
-class SettingsWindow(ctk.CTk):
-    def __init__(self):
-        super().__init__()
+class SettingsWindow(ctk.CTkToplevel):
+    def __init__(self, master=None):
+        super().__init__(master)
 
         self.title("ScreenBanter Settings")
         self.geometry("600x500")
@@ -37,6 +37,12 @@ class SettingsWindow(ctk.CTk):
 
         self.hotkeys_button = ctk.CTkButton(self.sidebar_frame, text="Hotkeys", command=self.show_hotkeys)
         self.hotkeys_button.grid(row=4, column=0, padx=20, pady=10)
+
+        self.performance_button = ctk.CTkButton(self.sidebar_frame, text="Performance", command=self.show_performance)
+        self.performance_button.grid(row=5, column=0, padx=20, pady=10)
+
+        self.hud_button = ctk.CTkButton(self.sidebar_frame, text="HUD / UI", command=self.show_hud_settings)
+        self.hud_button.grid(row=6, column=0, padx=20, pady=10)
 
         # Content areas
         self.content_frame = ctk.CTkFrame(self, corner_radius=0, fg_color="transparent")
@@ -271,6 +277,113 @@ class SettingsWindow(ctk.CTk):
         info_label = ctk.CTkLabel(self.current_frame, text="Hotkeys saved! (Restart app to apply)", text_color="green")
         info_label.grid(row=9, column=0, padx=10, pady=0, sticky="w")
         self.after(3000, info_label.destroy)
+
+    def show_performance(self):
+        self.clear_content()
+        self.current_frame = ctk.CTkFrame(self.content_frame, fg_color="transparent")
+        self.current_frame.grid(row=0, column=0, sticky="nsew")
+
+        label = ctk.CTkLabel(self.current_frame, text="Performance Mode", font=ctk.CTkFont(size=16, weight="bold"))
+        label.grid(row=0, column=0, padx=10, pady=(0, 20), sticky="w")
+
+        # Master Toggle
+        self.perf_enabled_var = ctk.BooleanVar(value=settings_manager.get("performance_mode", "enabled"))
+        self.perf_switch = ctk.CTkSwitch(self.current_frame, text="Enable Performance Mode", 
+                                        variable=self.perf_enabled_var, command=self.save_performance)
+        self.perf_switch.grid(row=1, column=0, padx=10, pady=10, sticky="w")
+
+        desc = ctk.CTkLabel(self.current_frame, text="Optimizes VRAM and Process Priority for gaming.\nRecommended for RTX 3060/4060 and below.", 
+                           justify="left", text_color="gray")
+        desc.grid(row=2, column=0, padx=35, pady=(0, 20), sticky="w")
+
+        # Quantization (Visual Only for now, controlled by Master Toggle effectively)
+        ctk.CTkLabel(self.current_frame, text="Quantization Strategy:").grid(row=3, column=0, padx=10, pady=5, sticky="w")
+        self.quant_option = ctk.CTkOptionMenu(self.current_frame, values=["4bit (Low VRAM)", "8bit", "None (FP16)"],
+                                             command=lambda _: self.save_performance())
+        self.quant_option.grid(row=4, column=0, padx=10, pady=5, sticky="w")
+        
+        # Map stored value to display value
+        current_quant = settings_manager.get("performance_mode", "quantization")
+        display_map = {"4bit": "4bit (Low VRAM)", "8bit": "8bit", "none": "None (FP16)"}
+        self.quant_option.set(display_map.get(current_quant, "4bit (Low VRAM)"))
+
+        # Priority
+        ctk.CTkLabel(self.current_frame, text="Force Process Priority:").grid(row=5, column=0, padx=10, pady=(15, 5), sticky="w")
+        self.perf_priority_option = ctk.CTkOptionMenu(self.current_frame, values=["Normal", "Above_Normal", "High"],
+                                                     command=lambda _: self.save_performance())
+        self.perf_priority_option.grid(row=6, column=0, padx=10, pady=5, sticky="w")
+        self.perf_priority_option.set((settings_manager.get("performance_mode", "process_priority") or "high").capitalize())
+
+        # Restart Warning
+        warning_label = ctk.CTkLabel(self.current_frame, text="⚠️ Changes require app restart to take full effect.", 
+                                    text_color="#FF5555", font=ctk.CTkFont(size=12, weight="bold"))
+        warning_label.grid(row=7, column=0, padx=10, pady=30, sticky="w")
+
+    def save_performance(self):
+        settings_manager.set("performance_mode", "enabled", self.perf_enabled_var.get())
+        
+        # Map display value back to storage key
+        display_val = self.quant_option.get()
+        reverse_map = {"4bit (Low VRAM)": "4bit", "8bit": "8bit", "None (FP16)": "none"}
+        settings_manager.set("performance_mode", "quantization", reverse_map.get(display_val, "4bit"))
+        
+        settings_manager.set("performance_mode", "process_priority", self.perf_priority_option.get().lower())
+
+    def show_hud_settings(self):
+        self.clear_content()
+        self.current_frame = ctk.CTkFrame(self.content_frame, fg_color="transparent")
+        self.current_frame.grid(row=0, column=0, sticky="nsew")
+
+        label = ctk.CTkLabel(self.current_frame, text="HUD / UI Settings", font=ctk.CTkFont(size=16, weight="bold"))
+        label.grid(row=0, column=0, padx=10, pady=(0, 20), sticky="w")
+
+        # Enable HUD
+        self.hud_enabled_var = ctk.BooleanVar(value=settings_manager.get("hud", "enabled"))
+        hud_check = ctk.CTkSwitch(self.current_frame, text="Enable Banter HUD", 
+                                  variable=self.hud_enabled_var, command=self.save_hud_settings)
+        hud_check.grid(row=1, column=0, padx=10, pady=10, sticky="w")
+
+        # Opacity Slider
+        self.opacity_val = settings_manager.get("hud", "opacity")
+        if self.opacity_val is None: self.opacity_val = 0.9
+        
+        self.opacity_label = ctk.CTkLabel(self.current_frame, text=f"Opacity: {int(self.opacity_val * 100)}%")
+        self.opacity_label.grid(row=2, column=0, padx=10, pady=(15, 5), sticky="w")
+        
+        self.opacity_slider = ctk.CTkSlider(self.current_frame, from_=0.1, to=1.0, 
+                                            command=self.update_opacity_label)
+        self.opacity_slider.grid(row=3, column=0, padx=10, pady=5, sticky="ew")
+        self.opacity_slider.set(self.opacity_val)
+        
+        save_opacity_btn = ctk.CTkButton(self.current_frame, text="Apply Opacity", command=self.save_hud_settings)
+        save_opacity_btn.grid(row=4, column=0, padx=10, pady=10, sticky="w")
+
+        # Steal Focus
+        ctk.CTkLabel(self.current_frame, text="Focus Behavior:", font=ctk.CTkFont(size=12, weight="bold")).grid(row=5, column=0, padx=10, pady=(20, 5), sticky="w")
+        
+        self.steal_focus_var = ctk.BooleanVar(value=settings_manager.get("hud", "steal_focus"))
+        steal_check = ctk.CTkCheckBox(self.current_frame, text="Steal Focus (Force Topmost)", 
+                                      variable=self.steal_focus_var, command=self.save_hud_settings)
+        steal_check.grid(row=6, column=0, padx=10, pady=5, sticky="w")
+        
+        hint = ctk.CTkLabel(self.current_frame, text="Warning: 'Steal Focus' may minimize exclusive fullscreen games.\nUse only if HUD is not appearing.", 
+                            text_color="gray", font=ctk.CTkFont(size=10))
+        hint.grid(row=7, column=0, padx=35, pady=(0, 10), sticky="w")
+
+    def update_opacity_label(self, val):
+        self.opacity_label.configure(text=f"Opacity: {int(val * 100)}%")
+
+    def save_hud_settings(self):
+        settings_manager.set("hud", "enabled", self.hud_enabled_var.get())
+        settings_manager.set("hud", "opacity", self.opacity_slider.get())
+        settings_manager.set("hud", "steal_focus", self.steal_focus_var.get())
+        
+        # If running, try to apply opacity immediately if possible (requires reference to HUD which we have via master)
+        if self.master and hasattr(self.master, "attributes"):
+            try:
+                self.master.attributes("-alpha", self.opacity_slider.get())
+            except:
+                pass
 
 if __name__ == "__main__":
     app = SettingsWindow()

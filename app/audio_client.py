@@ -20,12 +20,6 @@ class AudioClient:
         self.channels = 1
         self.format = pyaudio.paInt16
         
-        # Buffering configuration
-        buffer_seconds = settings_manager.get("audio", "buffer_seconds") or 4.0
-        bytes_per_sample = 2 # 16-bit
-        self.buffer_min_bytes = int(self.rate * self.channels * bytes_per_sample * buffer_seconds)
-        print(f"DEBUG: Audio buffering set to {buffer_seconds}s ({self.buffer_min_bytes} bytes)")
-
     def _play_worker(self):
         """
         Background worker that plays chunks from the queue.
@@ -72,6 +66,11 @@ class AudioClient:
         print(f"DEBUG: Requesting audio for text: {text[:30]}... (Voice: {voice_key})")
         self.is_playing = True
         
+        # Recalculate buffer settings (in case they changed)
+        buffer_seconds = settings_manager.get("audio", "buffer_seconds") or 4.0
+        bytes_per_sample = 2 # 16-bit
+        buffer_min_bytes = int(self.rate * self.channels * bytes_per_sample * buffer_seconds)
+        
         play_thread = None
         started_playing = False
         accumulated_bytes = 0
@@ -93,7 +92,7 @@ class AudioClient:
                     chunks_received += 1
                     
                     # Check if we should start playing (Buffer filled)
-                    if not started_playing and accumulated_bytes >= self.buffer_min_bytes:
+                    if not started_playing and accumulated_bytes >= buffer_min_bytes:
                         print(f"DEBUG: Buffer filled ({accumulated_bytes} bytes). Starting playback.")
                         play_thread = threading.Thread(target=self._play_worker)
                         play_thread.start()

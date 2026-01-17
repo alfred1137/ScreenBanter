@@ -94,6 +94,8 @@ ScreenBanter is an amateur project that tries to marry **Google’s Gemini Visio
 *   **Instant Narration:** Capture and narrate the screen with a single hotkey (`Ctrl + Alt + S`).
 *   **Batch Mode (Queueing):** Capture multiple windows or pages (`F10`) and process them as a single cohesive narrative (`F11`).
 *   **Custom Region Capture:** Precisely define which part of the screen to narrate using an interactive transparent selector.
+*   **Banter HUD:** A sleek, non-intrusive overlay that provides real-time status updates (Scanning, Speaking) and displays the OCR text without stealing focus from your game.
+*   **Performance Mode:** Optimizes resource usage for gaming by using 4-bit quantization (saving ~1GB VRAM) and boosting process priority.
 *   **Local Neural TTS:** Powered by VibeVoice for high-quality, low-latency audio without relying on cloud TTS credits.
 *   **Settings GUI:** A modern `CustomTkinter` interface for managing hotkeys, voices, and audio devices.
 *   **Smart Vision:** Uses Gemini Flash Lite (`models/gemini-flash-lite-latest`) via Gemini API for intelligent text extraction and context-aware merging of multiple screenshots.
@@ -160,6 +162,13 @@ uv run python -m app.main
 | **`F10`** | **Queue Screenshot** | Adds current view to buffer (confirmed by a beep). |
 | **`F11`** | **Process Queue** | Merges all queued captures and narrating the result. |
 
+**3. Banter HUD**
+ScreenBanter features a non-intrusive **HUD** that appears automatically during operation:
+- **Scanning:** Indicates Gemini is analyzing the screen.
+- **Thinking:** Displays the extracted text for verification.
+- **Speaking:** Shows playback status.
+*The HUD is "click-through" and will not steal focus from your active game.*
+
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 <!-- CONFIGURATION -->
@@ -171,6 +180,7 @@ Access settings by right-clicking the **Loudspeaker icon** in the system tray.
 *   **Hotkeys:** Rebind any action to your preferred key combinations.
 *   **Audio:** Select from multiple VibeVoice presets (e.g., `en-Davis_man`, `en-Emma_woman`). Adjust volume and playback speed.
 *   **Capture Mode:** Toggle between `Fullscreen` and `Region`. In Region mode, use the interactive selector to define your capture area.
+*   **HUD / UI:** Toggle the Banter HUD, adjust opacity, and configure focus behavior (Immersive vs. Focus mode).
 *   **Performance:** Configure "Process Priority" and "Playback Buffer" to optimize for your hardware.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
@@ -286,6 +296,7 @@ Project Link: [https://github.com/alfred1137/ScreenBanter](https://github.com/al
 <a id="changelog"></a>
 ## 📝 Changelog
 
+*   **2026-01-16**: Added **Performance Mode** (4-bit quantization, priority boosting) and **Banter HUD** for seamless gaming integration.
 *   **2026-01-14**: Enhanced documentation, added Region Capture and Settings GUI polish.
 *   **2026-01-10**: Implemented Settings GUI and dynamic configuration infrastructure.
 *   **2026-01-05**: Initial MVP release with Gemini OCR and VibeVoice TTS integration.

@@ -18,20 +18,26 @@ graph TD
     LocalInferenceServer -- Streaming Audio Chunks --> FrontendDaemon[Frontend Daemon (Audio Client)]
     FrontendDaemon -- Play Audio (PyAudio) --> User
 
-    TrayMenu[Tray Menu] -->|Open| SettingsGUI[Settings GUI (CustomTkinter)]
+    TrayMenu[Tray Menu] -->|Open| HudManager[HUD Manager (Thread)]
+    HudManager -->|Control| BanterHUD[Banter HUD (Persistent GUI)]
+    BanterHUD -->|Open| SettingsGUI[Settings GUI (Toplevel)]
     SettingsGUI <-->|Read/Write| SettingsManager[Settings Manager]
-    SettingsManager -.->|Apply| FrontendDaemon
-    SettingsManager -.->|Config| LocalInferenceServer
+    SettingsManager -.->|Env Vars| LocalInferenceServer
 ```
 **Key Technical Decisions:**
-- **Modern Desktop GUI:** `CustomTkinter` will be used for the Settings window to provide a native, themed (Light/Dark mode) experience that matches Windows 11 aesthetics.
-- **Settings Persistence:** A `settings.json` file in the application root will store all user preferences, managed by a centralized `SettingsManager` class.
+- **GUI Architecture (Persistent HUD):**
+    - The application uses a single persistent `customtkinter` loop running in a dedicated thread (`app/main.py` -> `init_hud`).
+    - **Banter HUD (`app/hud_window.py`)** acts as the root controller. It is a frameless, topmost window that uses `pywin32` to apply `WS_EX_NOACTIVATE`, ensuring it provides feedback without stealing keyboard/mouse focus from games.
+    - **Settings Window (`app/settings_window.py`)** is now a `CTkToplevel` child of the HUD, sharing the same event loop.
+- **Performance Mode (Game Optimization):**
+    - A "Master Toggle" in settings controls a suite of backend optimizations.
+    - **Configuration Injection:** The frontend daemon injects environment variables (e.g., `LOAD_IN_4BIT="true"`) when spawning the TTS server subprocess based on `settings.json`.
+    - **Quantization:** Uses `bitsandbytes` 4-bit quantization to reduce VRAM footprint from ~1.5GB to <500MB.
+    - **Priority:** The server process sets itself to `HIGH_PRIORITY_CLASS` on Windows startup.
+- **Modern Desktop GUI:** `CustomTkinter` provides a native, themed (Light/Dark mode) experience matching Windows 11 aesthetics.
+- **Settings Persistence:** A `settings.json` file in the application root stores all user preferences, managed by a centralized `SettingsManager` class.
 - **Dynamic Hardware Discovery:**
-    - **Voices:** The TTS server will dynamically scan for `.pt` files in the VibeVoice directory and expose them via a `/config` endpoint.
-    - **Audio Devices:** `PyAudio` will be used to query and list physical output devices for user selection.
-- **Capture Logic Extensions:**
-    - **Active Window:** Uses `pygetwindow` or native Win32 APIs to find the foreground window's bounding box.
-    - **Region Selection:** Implemented via a transparent, top-level overlay window for coordinate selection.
+    - **Voices:** The TTS server dynamically scans for `.pt` files in the VibeVoice directory and exposes them via a `/config` endpoint.
 
 **Design Patterns in Use:**
 - **Client-Server Architecture:** Decoupled Frontend Daemon and Inference Server allows for independent restarting and potential remote deployment.
@@ -40,20 +46,22 @@ graph TD
 
 **Component Relationships:**
 
-- **`app/main.py`:** The central orchestrator. Initializes the system tray, registers hotkeys from settings, manages the screenshot queue, and controls the server process lifecycle.
+- **`app/main.py`:** The central orchestrator. Initializes the system tray, registers hotkeys, manages the screenshot queue, and launches the HUD thread and Server subprocess.
 
-- **`app/settings.py`:** Contains `SettingsManager`, which handles `settings.json` persistence and provides a centralized API for other components to access configuration.
+- **`app/hud_window.py`:** The main visual interface during operation. Manages the GUI event loop and displays real-time status.
 
-- **`app/settings_window.py`:** A `CustomTkinter`-based GUI for user configuration, including dynamic voice fetching from the server.
+- **`app/settings.py`:** Contains `SettingsManager`, handling `settings.json` persistence.
 
-- **`app/region_selector.py`:** A `tkinter`-based transparent overlay for interactive capture area selection.
+- **`app/settings_window.py`:** A `CTkToplevel` GUI for configuration.
+
+- **`app/region_selector.py`:** A transparent overlay for interactive capture area selection.
 
 - **`app/capture.py`:** Wraps `DXcam` for high-speed screen and region grabbing.
 
-- **`app/vision.py`:** Handles interaction with the Gemini API, supporting both single-image and multi-image payloads.
+- **`app/vision.py`:** Handles interaction with the Gemini API.
 
-- **`app/audio_client.py`:** A threaded client that handles the persistent connection to the TTS server and smooth audio playback via `PyAudio`.
+- **`app/audio_client.py`:** Handles audio playback via `PyAudio`.
 
-- **`server/tts_server.py`:** FastAPI entry point. Includes a warmup routine to eliminate cold-start latency.
+- **`server/tts_server.py`:** FastAPI entry point. Includes a warmup routine and priority setting.
 
-- **`server/model_loader.py`:** Handles loading VibeVoice, managing CUDA devices, and dynamic discovery of voice presets (`.pt` files).
+- **`server/model_loader.py`:** Handles loading VibeVoice with optional quantization.

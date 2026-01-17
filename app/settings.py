@@ -19,10 +19,21 @@ class SettingsManager:
             "use_region": True,
             "region": None
         },
+        "hud": {
+            "enabled": True,
+            "opacity": 0.9,
+            "steal_focus": False
+        },
         "system": {
             "minimize_to_tray": True,
             "play_startup_sound": True,
             "priority": "above_normal"
+        },
+        "performance_mode": {
+            "enabled": False,
+            "quantization": "4bit",
+            "force_hud": False,
+            "process_priority": "high"
         }
     }
 

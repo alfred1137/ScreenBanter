@@ -1,22 +1,28 @@
 # Active Context: ScreenBanter
 
-**Current Work Focus:** Optimizing TTS performance for high-load gaming environments. Addressing audio throttling issues through quantization and process prioritization.
+**Current Work Focus:** Optimizing TTS performance for high-load gaming environments and enhancing user experience with a visual HUD.
 
 **Recent Changes:**
-- **Standalone Build Automation**: Implemented GitHub Actions workflow (`.github/workflows/build.yml`) for automated Windows `.exe` generation.
-- **Build Script Optimization**: Refactored `build_release.py` to use `sys.executable`, include `customtkinter` dependencies, and handle CI environments (added `--assume-yes-for-downloads`).
-- **CI/CD Integration**: Configured workflow to run on tags (`v*`) or manual dispatch, uploading a portable ZIP artifact.
-- **Packaging Documentation**: Added instructions for local and CI-based builds to the README and Memory Bank.
+- **Performance Mode Implementation**:
+    - Added "Performance Mode" toggle in Settings GUI.
+    - Integrated `bitsandbytes` 4-bit quantization support via `LOAD_IN_4BIT` environment variable injection.
+    - Implemented server-side process prioritization (High Priority).
+- **Banter HUD Implementation**:
+    - Created `app/hud_window.py`: A frameless, topmost, semi-transparent overlay.
+    - Integrated `WS_EX_NOACTIVATE` and `WS_EX_TOPMOST` styles.
+    - Implemented "HUD / UI" settings tab to control:
+        - `enabled`: Toggle HUD on/off.
+        - `opacity`: Adjust transparency (0.1 - 1.0).
+        - `steal_focus`: Optional force-focus behavior for priority.
+    - Refactored `app/main.py` to use a dedicated GUI thread for the HUD, which now manages the Settings window as a Toplevel.
+    - Wired HUD to display real-time OCR status ("Scanning", "Thinking", "Speaking") and extracted text.
 
 **Next Steps:**
-1.  **Dependency Update**: Add `bitsandbytes` to support 4-bit quantization.
-2.  **Model Optimization**: Update `model_loader.py` to support `load_in_4bit=True` and FP16 loading for efficient RTX usage.
-3.  **Process Priority**: Implement startup logic in `tts_server.py` to set Windows process priority to `HIGH_PRIORITY_CLASS`.
-4.  **Verification**: Benchmark startup and audio stability under load.
+1.  **Release**: Tag `v1.1.0` and trigger the build workflow.
+2.  **HUD Refinement**: Add playback controls (Stop/Skip) to the HUD if needed.
 
 **Active Decisions and Considerations:**
+- **GUI Architecture**: Shifted from a transient Settings window to a persistent, hidden HUD root window. The HUD and Settings are now managed within a single Tkinter loop running in a dedicated thread. This ensures responsiveness and allows the HUD to stay active without blocking the system tray icon logic.
 - **Quantization Strategy**: Adopting 4-bit quantization (via `bitsandbytes`) to drastically reduce VRAM usage (<500MB), preventing contention with VRAM-heavy games.
 - **Priority Boosting**: Using OS-level priority boosts to prevent the Windows Scheduler from throttling the background TTS process during full-screen gaming.
 - **Portable Folder vs. Onefile**: Decided to stick with a portable folder (standalone) zipped into an archive. This avoids the massive startup delay (20s+) associated with extracting a 2GB `onefile` executable containing `torch`.
-- **Model Inclusion**: The build script copies the `models/` directory into the final bundle. Since models are currently tracked in Git, the CI build will include them automatically.
-- **Environment Isolation**: Used `sys.executable` in the build script to ensure Nuitka uses the same `uv` virtual environment it was launched from.

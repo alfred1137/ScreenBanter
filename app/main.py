@@ -16,6 +16,7 @@ from .capture import ScreenCapturer
 from .vision import VisionEngine
 from .audio_client import AudioClient
 from .settings import settings_manager
+from .hud_window import BanterHUD
 
 # Load configuration
 load_dotenv()
@@ -33,8 +34,7 @@ class ScreenBanterApp:
         self.stdout_log = None
         self.stderr_log = None
         self.screenshot_queue = []
-        self.settings_win = None
-        self.settings_win_open = False
+        self.hud = None
         self.log_dir = "logs"
         if not os.path.exists(self.log_dir):
             os.makedirs(self.log_dir)
@@ -115,15 +115,32 @@ class ScreenBanterApp:
             self.stdout_log = open(os.path.join(self.log_dir, "server_stdout.log"), "w")
             self.stderr_log = open(os.path.join(self.log_dir, "server_stderr.log"), "w")
 
+            # Prepare Environment for Server
+            server_env = os.environ.copy()
+            
+            # Apply Performance Mode Settings
+            perf_enabled = settings_manager.get("performance_mode", "enabled")
+            quant_mode = settings_manager.get("performance_mode", "quantization")
+            
+            # Logic: If Performance Mode is Enabled AND Quantization is '4bit', set env var
+            # If Performance Mode is Disabled, force 4-bit OFF (unless default behavior changes)
+            if perf_enabled and quant_mode == "4bit":
+                server_env["LOAD_IN_4BIT"] = "true"
+                print("DEBUG: Launching Server with LOAD_IN_4BIT=true")
+            else:
+                server_env["LOAD_IN_4BIT"] = "false"
+                print(f"DEBUG: Launching Server with LOAD_IN_4BIT=false (Mode: {perf_enabled}, Quant: {quant_mode})")
+
             self.server_process = subprocess.Popen(
                 cmd, 
                 stdout=self.stdout_log, 
                 stderr=self.stderr_log,
-                creationflags=subprocess.CREATE_NEW_PROCESS_GROUP
+                creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,
+                env=server_env
             )
             
             print("Waiting for TTS server to be ready...")
-            max_retries = 60
+            max_retries = 120
             for i in range(max_retries):
                 try:
                     resp = requests.get("http://localhost:8000/health", timeout=1)
@@ -208,6 +225,12 @@ class ScreenBanterApp:
 
         def _process_task(images):
             try:
+                hud_enabled = settings_manager.get("hud", "enabled")
+
+                # Update HUD: Scanning
+                if self.hud and hud_enabled:
+                    self.hud.safe_show_message("Scanning screen...", status="Vision Processing")
+
                 # If it's a single image, vision engine handles it
                 # If it's multiple, vision engine handles that too
                 input_data = images if len(images) > 1 else images[0]
@@ -218,12 +241,32 @@ class ScreenBanterApp:
                     print(f"DEBUG: OCR Result: {text[:100]}...")
                     self.log_ocr_result(text)
                     
+                    # Update HUD: Text Found
+                    if self.hud and hud_enabled:
+                        self.hud.safe_show_message(text, status="Generating Voice...")
+                    
                     voice_key = settings_manager.get_audio_config().get("voice_key")
+                    
+                    # Update HUD: Speaking (approximate, since stream_and_play is blocking-ish or streaming)
+                    # We can assume it starts speaking quickly.
+                    if self.hud and hud_enabled:
+                        self.hud.safe_update_status("Speaking...")
+                        
                     self.audio.stream_and_play(text, voice_key=voice_key)
+                    
+                    # Dismiss HUD after playback
+                    if self.hud and hud_enabled:
+                        self.hud.safe_dismiss(delay=3.0)
                 else:
                     print("DEBUG: No text identified in queue.")
+                    if self.hud and hud_enabled:
+                        self.hud.safe_show_message("No text found.", status="Idle")
+                        self.hud.safe_dismiss(delay=2.0)
             except Exception as e:
                 print(f"ERROR in processing task: {e}")
+                if self.hud and hud_enabled:
+                    self.hud.safe_show_message(f"Error: {e}", status="Error")
+                    self.hud.safe_dismiss(delay=5.0)
                 import traceback
                 traceback.print_exc()
 
@@ -290,45 +333,34 @@ class ScreenBanterApp:
                 self.icon.notify("Failed to start TTS Server.", "Startup Error")
             print("Server failed to start. Check logs.")
 
+    def init_hud(self):
+        """Starts the HUD in a separate thread."""
+        def run_hud_thread():
+            print("DEBUG: Starting HUD thread...")
+            try:
+                self.hud = BanterHUD()
+                self.hud.mainloop()
+            except Exception as e:
+                print(f"HUD Error: {e}")
+
+        threading.Thread(target=run_hud_thread, daemon=True).start()
+
     def setup_app(self, icon):
         icon.visible = True
         icon.title = "ScreenBanter: Starting Server..."
+        
+        # Start HUD immediately
+        self.init_hud()
+        
         # Run initialization in a separate thread so the icon appears immediately
         threading.Thread(target=self.init_backend, daemon=True).start()
 
     def on_settings(self, icon=None):
-        """Opens the settings window."""
-        from .settings_window import SettingsWindow
-        
-        def _open_gui():
-            if self.settings_win_open:
-                try:
-                    self.settings_win.focus()
-                    self.settings_win.lift()
-                except:
-                    pass
-                return
-                
-            try:
-                self.settings_win_open = True
-                self.settings_win = SettingsWindow()
-                
-                # Update settings_win_open if window is closed
-                def on_close():
-                    self.settings_win_open = False
-                    self.settings_win.destroy()
-                    self.settings_win = None
-                
-                self.settings_win.protocol("WM_DELETE_WINDOW", on_close)
-                self.settings_win.mainloop()
-            except Exception as e:
-                print(f"DEBUG: Error in settings window: {e}")
-            finally:
-                self.settings_win_open = False
-                self.settings_win = None
-
-        # Run GUI in a separate thread to not block the icon/hotkeys
-        threading.Thread(target=_open_gui, daemon=True).start()
+        """Opens the settings window via the HUD."""
+        if self.hud:
+            self.hud.open_settings()
+        else:
+            print("HUD not initialized, cannot open settings.")
 
     def run(self):
         try:
