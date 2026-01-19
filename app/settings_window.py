@@ -190,6 +190,20 @@ class SettingsWindow(ctk.CTkToplevel):
         save_buffer_btn = ctk.CTkButton(self.current_frame, text="Apply Buffer", command=self.save_buffer)
         save_buffer_btn.grid(row=6, column=0, padx=10, pady=10, sticky="w")
 
+        # Playback Mode
+        ctk.CTkLabel(self.current_frame, text="Playback Mode:", font=ctk.CTkFont(size=12, weight="bold")).grid(row=8, column=0, padx=10, pady=(20, 5), sticky="w")
+
+        playback_hint = ctk.CTkLabel(self.current_frame, text="'Pre-generate' waits for full audio. Fixes stutter on slow GPUs but increases latency.",
+                                     font=ctk.CTkFont(size=10, slant="italic"), wraplength=350, justify="left")
+        playback_hint.grid(row=9, column=0, padx=10, pady=(0, 5), sticky="w")
+
+        self.playback_mode_var = ctk.StringVar(value=settings_manager.get("audio", "playback_mode"))
+        self.playback_mode_option = ctk.CTkOptionMenu(self.current_frame,
+                                                      values=["stream", "pre-generate"],
+                                                      variable=self.playback_mode_var,
+                                                      command=self.save_audio_playback_mode)
+        self.playback_mode_option.grid(row=10, column=0, padx=10, pady=5, sticky="w")
+
         # Fetch voices from server in background
         threading.Thread(target=self.fetch_voices, daemon=True).start()
 
@@ -236,6 +250,9 @@ class SettingsWindow(ctk.CTkToplevel):
 
     def save_audio(self, selected_voice):
         settings_manager.set("audio", "voice_key", selected_voice)
+
+    def save_audio_playback_mode(self, selected_mode):
+        settings_manager.set("audio", "playback_mode", selected_mode)
 
     def show_hotkeys(self):
         self.clear_content()
