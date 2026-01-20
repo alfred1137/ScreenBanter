@@ -23,7 +23,7 @@ jobs:
           submodules: recursive
 
       - name: Increase Pagefile (Avoid OOM)
-        uses: alrededor/set-swap-space@master
+        uses: pierotofy/set-swap-space@master
         with:
           swap-size-gb: 12
 
