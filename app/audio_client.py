@@ -16,6 +16,7 @@ class AudioClient:
         self.stream = None
         self.chunk_queue = queue.Queue()
         self.is_playing = False
+        self._lock = threading.Lock()
         
         # Audio parameters should match VibeVoice output (e.g., 24kHz or 16kHz)
         # For now, we assume 24000Hz, Mono, 16-bit PCM
@@ -43,6 +44,7 @@ class AudioClient:
             )
             
             chunks_played = 0
+            # Play as long as we are "playing" OR there is still data in the queue
             while self.is_playing or not self.chunk_queue.empty():
                 try:
                     chunk = self.chunk_queue.get(timeout=0.1)
@@ -59,32 +61,37 @@ class AudioClient:
             print(f"DEBUG: Audio playback worker error: {e}")
         finally:
             if self.stream:
-                self.stream.stop_stream()
-                self.stream.close()
+                try:
+                    self.stream.stop_stream()
+                    self.stream.close()
+                except:
+                    pass
                 self.stream = None
 
     def stream_and_play(self, text, voice_key=None):
         """
         Requests audio from TTS provider and queues chunks for playback.
+        Ensures only one narration happens at a time.
         """
         if not text.strip():
             print("DEBUG: Empty text, skipping audio.")
             return
 
-        tts_provider = settings_manager.get("audio", "tts_provider") or "local"
-        print(f"DEBUG: Using TTS Provider: {tts_provider}")
+        with self._lock:
+            tts_provider = settings_manager.get("audio", "tts_provider") or "local"
+            print(f"DEBUG: Using TTS Provider: {tts_provider}")
 
-        if tts_provider == "gemini":
-            self._stream_from_gemini(text)
-        else:
-            self._stream_from_local(text, voice_key)
+            if tts_provider == "gemini":
+                self._stream_from_gemini(text)
+            else:
+                self._stream_from_local(text, voice_key)
 
     def _stream_from_gemini(self, text):
         if not self.genai_client:
             print("ERROR: Gemini client not initialized. Check GEMINI_KEY.")
             return
 
-        print(f"DEBUG: Requesting Gemini Cloud TTS for text: {text[:30]}...")
+        print(f"DEBUG: Requesting Gemini Cloud TTS for text: {text[:50]}...")
         self.is_playing = True
         play_thread = None
 
@@ -108,34 +115,51 @@ class AudioClient:
                 )
             )
 
-            if response.audio_data:
-                # Gemini returns full audio data. We chunk it for the play worker.
-                # Note: We assume 24kHz Mono 16-bit PCM for now.
-                audio_data = response.audio_data
-                chunk_size = 4096
-                for i in range(0, len(audio_data), chunk_size):
-                    self.chunk_queue.put(audio_data[i:i + chunk_size])
-                
-                print(f"DEBUG: Received {len(audio_data)} bytes of audio from Gemini.")
-                play_thread = threading.Thread(target=self._play_worker)
-                play_thread.start()
+            if response.candidates and response.candidates[0].content.parts:
+                # The correct path according to documentation is response.candidates[0].content.parts[0].inline_data.data
+                part = response.candidates[0].content.parts[0]
+                if hasattr(part, 'inline_data') and part.inline_data:
+                    audio_data = part.inline_data.data
+                    
+                    # Check if it looks like WAV (starts with 'RIFF')
+                    if audio_data.startswith(b'RIFF'):
+                        print("DEBUG: Received WAV format from Gemini. Stripping 44-byte header.")
+                        audio_data = audio_data[44:]
+                    
+                    chunk_size = 4096
+                    for i in range(0, len(audio_data), chunk_size):
+                        self.chunk_queue.put(audio_data[i:i + chunk_size])
+                    
+                    print(f"DEBUG: Received {len(audio_data)} bytes of audio from Gemini.")
+                    play_thread = threading.Thread(target=self._play_worker, daemon=True)
+                    play_thread.start()
+                else:
+                    print(f"DEBUG: Part does not contain inline_data. Part attributes: {dir(part)}")
             else:
-                print("DEBUG: No audio data in Gemini response.")
+                print("DEBUG: No candidates or parts in Gemini response.")
 
         except Exception as e:
             print(f"Gemini Cloud TTS error: {e}")
+            import traceback
+            traceback.print_exc()
         finally:
-            self.is_playing = False
+            # We must wait for the playback to finish before releasing the lock or changing status
             if play_thread:
+                # Signal the worker that no more data is coming (after it drains the queue)
+                self.is_playing = False 
                 play_thread.join()
+                print("DEBUG: Gemini audio playback finished.")
+            else:
+                self.is_playing = False
+
 
     def _stream_from_local(self, text, voice_key):
-        print(f"DEBUG: Requesting local audio for text: {text[:30]}... (Voice: {voice_key})")
+        print(f"DEBUG: Requesting local audio for text: {text[:50]}... (Voice: {voice_key})")
         self.is_playing = True
+        play_thread = None
 
         # Get playback mode from settings
         playback_mode = settings_manager.get("audio", "playback_mode") or "stream"
-        play_thread = None
 
         try:
             payload = {"text": text}
@@ -165,7 +189,7 @@ class AudioClient:
 
                         if not started_playing and accumulated_bytes >= buffer_min_bytes:
                             print(f"DEBUG: Buffer filled ({accumulated_bytes} bytes). Starting playback.")
-                            play_thread = threading.Thread(target=self._play_worker)
+                            play_thread = threading.Thread(target=self._play_worker, daemon=True)
                             play_thread.start()
                             started_playing = True
 
@@ -173,7 +197,7 @@ class AudioClient:
 
                 if not started_playing and not self.chunk_queue.empty():
                     print(f"DEBUG: Stream finished before buffer fill ({accumulated_bytes} bytes). Starting playback.")
-                    play_thread = threading.Thread(target=self._play_worker)
+                    play_thread = threading.Thread(target=self._play_worker, daemon=True)
                     play_thread.start()
 
             elif playback_mode == "pre-generate":
@@ -187,17 +211,21 @@ class AudioClient:
 
                 print(f"DEBUG: Full audio downloaded. Total chunks: {chunks_received}. Starting playback.")
                 if not self.chunk_queue.empty():
-                    play_thread = threading.Thread(target=self._play_worker)
+                    play_thread = threading.Thread(target=self._play_worker, daemon=True)
                     play_thread.start()
 
         except Exception as e:
             print(f"Audio client error: {e}")
+            import traceback
+            traceback.print_exc()
         finally:
-            self.is_playing = False
+            # Signal the worker and wait
             if play_thread:
+                self.is_playing = False
                 play_thread.join()
-                print("DEBUG: Audio playback thread joined.")
+                print("DEBUG: Local audio playback finished.")
             else:
+                self.is_playing = False
                 # Ensure queue is cleared if playback never started
                 while not self.chunk_queue.empty():
                     try:

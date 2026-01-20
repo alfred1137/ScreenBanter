@@ -3,6 +3,13 @@
 **Current Work Focus:** Implementing Cloud TTS option via Gemini API and preparing v0.1.0 release.
 
 **Recent Changes:**
+- **Cloud TTS Support (2026-01-20)**:
+    - Implemented `tts_provider` setting (Local vs. Gemini Cloud).
+    - Integrated Gemini TTS in `AudioClient` using `google-genai` SDK.
+    - Updated `ScreenBanterApp` to skip local TTS server startup if Gemini Cloud is selected.
+    - Added cloud-specific settings: `cloud_model` (`gemini-2.5-flash-preview-tts`) and `cloud_voice` (`Puck`).
+    - Fixed `AttributeError` in `AudioClient` by correctly mapping the response structure for native speech generation.
+    - Made `AudioClient` thread-safe with a lock to prevent concurrent narration overlap.
 - **Lite vs Full Packaging (2026-01-20)**:
     - Moved `uvicorn`, `fastapi`, `torch`, and other heavy ML deps to `optional-dependencies` in `pyproject.toml`.
     - Updated `build_release.py` to support `--lite` and `--full` (default) builds.
@@ -35,9 +42,8 @@
     - Add cloud-specific settings: `cloud_model` and `cloud_voice`.
 
 **Next Steps:**
-1.  **Implement Cloud TTS**: Update settings, main app logic, and audio client.
-2.  **Verification**: Test both local and cloud TTS modes.
-3.  **Release**: Tag `v0.1.0` and trigger the build workflow.
+1.  **Verification**: Conduct a final end-to-end integration test with both local and cloud providers.
+2.  **Release**: Tag `v0.1.0` and trigger the build workflow.
 
 **Active Decisions and Considerations:**
 - **Model Selection**: 
