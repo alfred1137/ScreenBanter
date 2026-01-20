@@ -7,6 +7,7 @@
     - Moved `uvicorn`, `fastapi`, `torch`, and other heavy ML deps to `optional-dependencies` in `pyproject.toml`.
     - Updated `build_release.py` to support `--lite` and `--full` (default) builds.
     - Updated `app/settings.py` to check for `fastapi` and `uvicorn` before allowing local TTS server startup.
+    - **CI Optimization**: Updated GitHub Actions to use a matrix strategy (separate runners for Lite and Full) and increased the Windows pagefile (12GB) to prevent the "lost communication" (OOM) error during Nuitka compilation.
     - This allows for a "Lite" distribution (~100MB) for cloud-only users and a "Full" distribution (~5GB+) for local TTS users.
 - **Full Workflow Verification (2026-01-20)**: Successfully tested HUD status updates, 4-bit quantized inference, region-specific screen capture, and Gemini OCR in a single session.
 - **Versioning Alignment**: Decided to version the current release as `v0.1.0` to match `pyproject.toml` and reset the baseline for public availability.
@@ -39,6 +40,9 @@
 3.  **Release**: Tag `v0.1.0` and trigger the build workflow.
 
 **Active Decisions and Considerations:**
+- **Model Selection**: 
+    - **OCR Engine**: `gemini-flash-lite-latest` (Gemini 2.0 Flash Lite) selected for high-speed, cost-effective multimodal extraction.
+    - **Cloud TTS Engine**: `gemini-2.5-flash-preview-tts` (Native Speech) selected for its natural performance and 30 unique voice styles (Zephyr, Puck, Kore, etc.).
 - **Release Versioning**: Standardizing on `v0.1.0` for the initial public launch to reflect "Beta" status while acknowledging feature completeness.
 - **GUI Architecture**: Shifted from a transient Settings window to a persistent, hidden HUD root window. The HUD and Settings are now managed within a single Tkinter loop running in a dedicated thread. This ensures responsiveness and allows the HUD to stay active without blocking the system tray icon logic.
 - **Quantization Strategy**: Adopting 4-bit quantization (via `bitsandbytes`) to drastically reduce VRAM usage (<500MB), preventing contention with VRAM-heavy games.

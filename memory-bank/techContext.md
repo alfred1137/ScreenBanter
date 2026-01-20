@@ -2,9 +2,18 @@
 
 **Technologies Used:**
 - **Python:** 3.10+ (Required for compatibility with certain ML libraries).
-- **Google Gemini 2.0 Flash Lite API:** For high-speed, multi-modal OCR.
-- **Google Gemini 2.5 Flash Preview TTS:** For high-quality cloud-based text-to-speech.
+- **Google Gemini 2.0 Flash Lite API (`gemini-flash-lite-latest`):** For high-speed, multi-modal OCR.
+- **Google Gemini 2.5 Flash Preview TTS (`gemini-2.5-flash-preview-tts`):** For high-quality native cloud-based text-to-speech.
 - **Microsoft VibeVoice-0.5B:** Local TTS model, running on `torch` with CUDA acceleration.
+
+**Gemini Cloud TTS Voice Options:**
+Supports 30 native voices configurable via `voice_name`:
+- **Zephyr, Puck, Autonoe, Laomedeia** (Bright/Upbeat)
+- **Kore, Orus, Erinome, Iapetus, Alnilam** (Firm/Clear)
+- **Algieba, Despina, Achernar, Sulafat, Vindemiatrix** (Smooth/Soft/Warm)
+- **Charon, Rasalgethi, Sadaltager, Schedar, Gacrux** (Informative/Mature)
+- **Callirrhoe, Umbriel, Zubenelgenubi, Achird, Leda** (Easy-going/Friendly)
+- **Fenrir, Aoede, Enceladus, Pulcherrima, Sadachbia** (Other styles)
 - **google-genai:** Unified Python SDK for Gemini Vision and TTS.
 - **bitsandbytes:** 8-bit/4-bit optimization for model quantization.
 - **FastAPI/Uvicorn:** Backend server infrastructure.

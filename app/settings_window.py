@@ -238,8 +238,19 @@ class SettingsWindow(ctk.CTkToplevel):
             self.cloud_model_entry.insert(0, settings_manager.get("audio", "cloud_model") or "gemini-2.5-flash-preview-tts")
             
             ctk.CTkLabel(self.provider_container, text="Gemini Voice Name:").grid(row=2, column=0, padx=10, pady=5, sticky="w")
+            
+            # Full list of 30 voices from Gemini TTS documentation
+            gemini_voices = [
+                "Zephyr", "Puck", "Autonoe", "Laomedeia", "Fenrir", "Aoede",
+                "Kore", "Orus", "Erinome", "Iapetus", "Alnilam", "Enceladus",
+                "Algieba", "Despina", "Achernar", "Sulafat", "Vindemiatrix", "Pulcherrima",
+                "Charon", "Rasalgethi", "Sadaltager", "Schedar", "Gacrux", "Sadachbia",
+                "Callirrhoe", "Umbriel", "Zubenelgenubi", "Achird", "Leda", "Iapetus"
+            ]
+            gemini_voices = sorted(list(set(gemini_voices))) # Remove dups and sort
+
             self.cloud_voice_option = ctk.CTkOptionMenu(self.provider_container, 
-                                                        values=["Puck", "Charon", "Kore", "Fenrir", "Aoede"],
+                                                        values=gemini_voices,
                                                         command=self.save_audio_cloud)
             self.cloud_voice_option.grid(row=3, column=0, padx=10, pady=5, sticky="w")
             self.cloud_voice_option.set(settings_manager.get("audio", "cloud_voice") or "Puck")
