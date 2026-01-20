@@ -49,6 +49,7 @@
 **Remaining:**
 - **[Deployment]** Create release tag (`v0.1.0`).
 - **[Testing]** User validation of Performance Mode impact on frame rates.
+- **[Optimization]** Pseudo-streaming for Cloud TTS (Long text handling).
 
 **In Progress:**
 - Finalizing release documentation.

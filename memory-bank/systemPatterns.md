@@ -69,3 +69,25 @@ graph TD
 - **`server/tts_server.py`:** FastAPI entry point. Includes a warmup routine and priority setting.
 
 - **`server/model_loader.py`:** Handles loading VibeVoice with optional quantization.
+
+
+
+## Future Considerations
+
+
+
+### Pseudo-Streaming for Cloud TTS
+
+Since the current Gemini 2.5 TTS model operates in batch mode (generating full audio before first byte), long passages can introduce latency.
+
+- **Strategy**: Implement a text-splitting pipeline.
+
+- **Mechanism**: 
+
+    1. Segment long OCR text into sentences or logical phrases.
+
+    2. Dispatch concurrent (or pipelined) `generate_content` requests.
+
+    3. Queue resulting audio buffers for seamless back-to-back playback in `AudioClient`.
+
+- **Goal**: Achieve "Time to First Sound" (TTFS) under 2 seconds regardless of total text length.
