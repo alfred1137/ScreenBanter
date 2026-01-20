@@ -12,246 +12,84 @@ def run_command(command, env=None):
         sys.exit(1)
 
 def build():
-
     # Parse arguments
-
     is_lite = "--lite" in sys.argv
-
     version_suffix = "Lite" if is_lite else "Full"
 
-    
-
     # Define paths
-
     project_root = os.path.dirname(os.path.abspath(__file__))
-
     dist_dir = os.path.join(project_root, "dist")
 
-    
+    if not os.path.exists(dist_dir):
+        os.makedirs(dist_dir)
 
-            # Clean previous build (Specific to this version)
-
-    
-
-            if not os.path.exists(dist_dir):
-
-    
-
-                os.makedirs(dist_dir)
-
-    
-
-            
-
-    
-
-            # Nuitka creates a .dist folder. 
-
-    
-
-            # With --output-filename=ScreenBanter.exe, it usually creates ScreenBanter.dist
-
-    
-
-            target_dist_folder = os.path.join(dist_dir, "ScreenBanter.dist")
-
-    
-
-            if os.path.exists(target_dist_folder):
-
-    
-
-                print(f"Cleaning previous temporary build folder: {target_dist_folder}")
-
-    
-
-                shutil.rmtree(target_dist_folder)
-
-    
+    # Nuitka creates a .dist folder. 
+    # With --output-filename=ScreenBanter.exe, it usually creates ScreenBanter.dist
+    target_dist_folder = os.path.join(dist_dir, "ScreenBanter.dist")
+    if os.path.exists(target_dist_folder):
+        print(f"Cleaning previous temporary build folder: {target_dist_folder}")
+        shutil.rmtree(target_dist_folder)
 
     # Setup environment
-
     env = os.environ.copy()
-
     vibevoice_repo_path = os.path.join(project_root, "third_party", "VibeVoice")
-
+    
     if os.path.exists(vibevoice_repo_path) and not is_lite:
-
         env["PYTHONPATH"] = vibevoice_repo_path + os.pathsep + env.get("PYTHONPATH", "")
-
         print(f"Added to PYTHONPATH: {vibevoice_repo_path}")
 
-
-
     # Nuitka arguments
-
     nuitka_cmd = [
-
         sys.executable, "-m", "nuitka",
-
         "--standalone",
-
         "--assume-yes-for-downloads",
-
         "--jobs=1",
-
         "--python-flag=no_site",
-
-        
-
         # Plugins
-
         "--enable-plugin=tk-inter",
-
-        
-
-                # Core packages (Always included)
-
-        
-
-                "--include-package=pystray",
-
-        
-
-                "--include-package=PIL",
-
-        
-
-                "--include-package=numpy",
-
-        
-
-                "--include-package=customtkinter",
-
-        
-
-                "--include-package=darkdetect",
-
-        
-
-                "--include-package=dxcam",
-
-        
-
-                "--include-package=google",
-
-        
-
-                "--include-package=requests",
-
-        
-
-                "--include-package=pyaudio",
-
-        
-
+        # Core packages (Always included)
+        "--include-package=pystray",
+        "--include-package=PIL",
+        "--include-package=numpy",
+        "--include-package=customtkinter",
+        "--include-package=darkdetect",
+        "--include-package=dxcam",
+        "--include-package=google",
+        "--include-package=requests",
+        "--include-package=pyaudio",
         # Application packages
-
         "--include-package=app",
-
-        
-
         # Data files
-
         "--include-data-dir=assets=assets",
-
-        
-
         # Output
-
         "--output-dir=dist",
-
         "--output-filename=ScreenBanter.exe",
-
-        
-
         # Main entry point
-
         "app/main.py"
-
     ]
 
-
-
-        # Add Heavy Dependencies ONLY for Full version
-
-
-
-        if not is_lite:
-
-
-
-            print(">>> Configuring FULL build with Local TTS support...")
-
-
-
-            nuitka_cmd.extend([
-
-
-
-                "--include-package=uvicorn",
-
-
-
-                "--include-package=fastapi",
-
-
-
-                "--enable-plugin=torch",
-
-
-
-                "--include-package=torch",
-
-
-
-                "--include-package=transformers",
-
-
-
-                "--include-package=huggingface_hub",
-
-
-
-                "--include-package=accelerate",
-
-
-
-                "--include-package=av",
-
-
-
-                "--include-package=soundfile",
-
-
-
-                "--include-package=server", # Only need server in Full
-
-
-
-                "--include-package=vibevoice",
-
-
-
-                # Include VibeVoice voice presets
-
-
-
-                "--include-data-dir=third_party/VibeVoice/demo/voices=third_party/VibeVoice/demo/voices",
-
-
-
-            ])
-
+    # Add Heavy Dependencies ONLY for Full version
+    if not is_lite:
+        print(">>> Configuring FULL build with Local TTS support...")
+        nuitka_cmd.extend([
+            "--include-package=uvicorn",
+            "--include-package=fastapi",
+            "--enable-plugin=torch",
+            "--include-package=torch",
+            "--include-package=transformers",
+            "--include-package=huggingface_hub",
+            "--include-package=accelerate",
+            "--include-package=av",
+            "--include-package=soundfile",
+            "--include-package=server", # Only need server in Full
+            "--include-package=vibevoice",
+            # Include VibeVoice voice presets
+            "--include-data-dir=third_party/VibeVoice/demo/voices=third_party/VibeVoice/demo/voices",
+        ])
     else:
-
         print(">>> Configuring LITE build (Cloud TTS only)...")
 
-
-
-    # Handle Icon
-
- if it exists as .ico (Nuitka requirement)
+    # Handle Icon if it exists as .ico (Nuitka requirement)
     icon_path = os.path.join(project_root, "assets", "icon.ico")
     if os.path.exists(icon_path):
         nuitka_cmd.append(f"--windows-icon-from-ico={icon_path}")
@@ -287,7 +125,7 @@ def build():
         pyproject = tomllib.load(f)
     version = pyproject.get("project", {}).get("version", "0.1.0")
     
-    final_folder_name = f"ScreenBanter_{version_suffix}_v{version}"
+    final_folder_name = f"ScreenBanter_{{version_suffix}}_v{version}"
     final_output = os.path.join(dist_dir, final_folder_name)
     if os.path.exists(final_output):
         shutil.rmtree(final_output)
