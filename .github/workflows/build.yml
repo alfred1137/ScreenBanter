@@ -8,7 +8,12 @@ on:
 
 jobs:
   build:
+    name: Build ${{ matrix.build_type }}
     runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        build_type: [lite, full]
     
     steps:
       - name: Checkout Code
@@ -16,6 +21,11 @@ jobs:
         with:
           lfs: true
           submodules: recursive
+
+      - name: Increase Pagefile (Avoid OOM)
+        uses: alrededor/set-swap-space@master
+        with:
+          swap-size-gb: 12
 
       - name: Install uv
         uses: astral-sh/setup-uv@v5
@@ -28,34 +38,36 @@ jobs:
         with:
           python-version-file: ".python-version"
 
-      - name: Build Lite Version
-        run: |
-          uv sync
-          uv run python build_release.py --lite
+      - name: Install Dependencies (Lite)
+        if: matrix.build_type == 'lite'
+        run: uv sync
 
-      - name: Build Full Version
-        run: |
-          uv sync --extra local-tts
-          uv run python build_release.py
+      - name: Install Dependencies (Full)
+        if: matrix.build_type == 'full'
+        run: uv sync --extra local-tts
 
-      - name: Create Release Zips
+      - name: Build Executable (Lite)
+        if: matrix.build_type == 'lite'
+        run: uv run python build_release.py --lite
+
+      - name: Build Executable (Full)
+        if: matrix.build_type == 'full'
+        run: uv run python build_release.py
+
+      - name: Create Release Zip
         shell: pwsh
         run: |
-          $Version = (Get-Content pyproject.toml | ConvertFrom-StringData).version # Simplified for example, might need better parsing
-          # Better way to get version from pyproject.toml
+          # Robust version extraction from pyproject.toml
           $Version = (Select-String -Path pyproject.toml -Pattern 'version = "(.*)"').Matches.Groups[1].Value
+          $Type = "${{ matrix.build_type }}".SubString(0,1).ToUpper() + "${{ matrix.build_type }}".SubString(1).ToLower()
+          $FolderName = "ScreenBanter_${Type}_v$Version"
           
-          Compress-Archive -Path dist/ScreenBanter_Lite_v$Version -DestinationPath ScreenBanter_Lite_v$Version.zip
-          Compress-Archive -Path dist/ScreenBanter_Full_v$Version -DestinationPath ScreenBanter_Full_v$Version.zip
+          Write-Host "Zipping dist/$FolderName..."
+          Compress-Archive -Path "dist/$FolderName" -DestinationPath "${FolderName}.zip"
 
-      - name: Upload Lite Artifact
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ScreenBanter_Lite_v0.1.0
-          path: ScreenBanter_Lite_v*.zip
-
-      - name: Upload Full Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ScreenBanter_Full_v0.1.0
-          path: ScreenBanter_Full_v*.zip
+          name: ScreenBanter_${{ matrix.build_type }}_v0.1.0
+          path: "*.zip"
+          retention-days: 5
