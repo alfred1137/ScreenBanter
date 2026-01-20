@@ -3,6 +3,11 @@
 **Current Work Focus:** Implementing Cloud TTS option via Gemini API and preparing v0.1.0 release.
 
 **Recent Changes:**
+- **Lite vs Full Packaging (2026-01-20)**:
+    - Moved `uvicorn`, `fastapi`, `torch`, and other heavy ML deps to `optional-dependencies` in `pyproject.toml`.
+    - Updated `build_release.py` to support `--lite` and `--full` (default) builds.
+    - Updated `app/settings.py` to check for `fastapi` and `uvicorn` before allowing local TTS server startup.
+    - This allows for a "Lite" distribution (~100MB) for cloud-only users and a "Full" distribution (~5GB+) for local TTS users.
 - **Full Workflow Verification (2026-01-20)**: Successfully tested HUD status updates, 4-bit quantized inference, region-specific screen capture, and Gemini OCR in a single session.
 - **Versioning Alignment**: Decided to version the current release as `v0.1.0` to match `pyproject.toml` and reset the baseline for public availability.
 - **Build Fix**:

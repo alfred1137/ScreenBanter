@@ -14,9 +14,12 @@ graph TD
     Capture -->|Single Frame| VisionEngine[Vision Engine (Gemini 2.0 Flash Lite API)]
     ImageQueue -->|Batch Frames| VisionEngine
 
-    VisionEngine -- Extracted Text --> LocalInferenceServer[Local Inference Server (FastAPI + VibeVoice-0.5B)]
+    VisionEngine -- Extracted Text --> LocalInferenceServer[Local Inference Server (FastAPI + VibeVoice-0.5B - Full Version Only)]
     LocalInferenceServer -- Streaming Audio Chunks --> FrontendDaemon[Frontend Daemon (Audio Client)]
     FrontendDaemon -- Play Audio (PyAudio) --> User
+
+    VisionEngine -- Extracted Text --> CloudTTS[Cloud TTS (Gemini API)]
+    CloudTTS -- Audio Bytes --> FrontendDaemon
 
     TrayMenu[Tray Menu] -->|Open| HudManager[HUD Manager (Thread)]
     HudManager -->|Control| BanterHUD[Banter HUD (Persistent GUI)]

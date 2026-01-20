@@ -9,16 +9,20 @@
 *** for contributors-url, forks-url, etc. This is an optional, concise syntax you may use.
 *** https://www.markdownguide.org/basic-syntax/#reference-style-links
 -->
-[![Forks][forks-shield]][forks-url]
-[![Stargazers][stars-shield]][stars-url]
-[![Issues][issues-shield]][issues-url]
-[![MIT License][license-shield]][license-url]
+  <p style="text-align: center;">
+    <a href="https://github.com/alfred1137/ScreenBanter/network/members"><img src="https://img.shields.io/github/forks/alfred1137/ScreenBanter.svg?style=for-the-badge" alt="Forks"></a>
+    <a href="https://github.com/alfred1137/ScreenBanter/stargazers"><img src="https://img.shields.io/github/stars/alfred1137/ScreenBanter.svg?style=for-the-badge" alt="Stargazers"></a>
+    <a href="https://github.com/alfred1137/ScreenBanter/issues"><img src="https://img.shields.io/github/issues/alfred1137/ScreenBanter.svg?style=for-the-badge" alt="Issues"></a>
+    <a href="https://github.com/alfred1137/ScreenBanter/blob/master/LICENSE"><img src="https://img.shields.io/github/license/alfred1137/ScreenBanter.svg?style=for-the-badge" alt="MIT License"></a>
+  </p>
   <!-- Built With Icons integrated here to save space -->
-[![Python][Python]][Python-url]
-[![FastAPI][FastAPI]][FastAPI-url]
-[![PyTorch][PyTorch]][PyTorch-url]
-[![UV][UV]][UV-url]
-[![Google Gemini][Gemini]][Gemini-url]
+  <p style="text-align: center;">
+    <a href="https://www.python.org/"><img src="https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54" alt="Python"></a>
+    <a href="https://fastapi.tiangolo.com/"><img src="https://img.shields.io/badge/FastAPI-005571?style=for-the-badge&logo=fastapi" alt="FastAPI"></a>
+    <a href="https://pytorch.org/"><img src="https://img.shields.io/badge/PyTorch-%23EE4C2C.svg?style=for-the-badge&logo=PyTorch&logoColor=white" alt="PyTorch"></a>
+    <a href="https://github.com/astral-sh/uv"><img src="https://img.shields.io/badge/uv-managed-green?style=for-the-badge" alt="UV"></a>
+    <a href="https://deepmind.google/technologies/gemini/"><img src="https://img.shields.io/badge/Google%20Gemini-8E75B2?style=for-the-badge&logo=google%20gemini&logoColor=white" alt="Google Gemini"></a>
+  </p>
 
 > [!WARNING]
 > This is an ongoing personal project currently in active development. Features are subject to change.

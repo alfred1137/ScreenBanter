@@ -23,15 +23,19 @@
 
 **Key Dependencies & Constraints:**
 - **Transformers:** Pinned to `4.51.3` to ensure compatibility with VibeVoice's specific internal logic.
-- **PyTorch:** Must be the CUDA-enabled version.
-- **CustomTkinter:** Used for a themed (Light/Dark mode) settings interface.
-- **Native Build Tools:** `PyAudio` and `Pystray` often require Microsoft Visual C++ Build Tools during installation.
+- **PyTorch:** Must be the CUDA-enabled version (Full version only).
+- **Lite vs Full Split:**
+    - **Lite Version:** Cloud-only (Gemini TTS). Excludes `torch`, `transformers`, `fastapi`, `uvicorn`, and local models. Significantly smaller package size.
+    - **Full Version:** Includes Local TTS (VibeVoice) support with all heavy ML dependencies and model weights.
 
 **Tool Usage Patterns:**
 - **Run App:** `uv run python -m app.main`
-- **Run Server Mode:** `uv run python -m app.main --server` (Used for packaged bundles)
-- **Run Server (Debug):** `uv run uvicorn server.tts_server:app --port 8000`
-- **Dependency Sync:** `uv sync`
+- **Install for Lite:** `uv sync` (default)
+- **Install for Full:** `uv sync --extra local-tts`
+- **Build Lite:** `python build_release.py --lite`
+- **Build Full:** `python build_release.py`
+- **Run Server Mode:** `uv run python -m app.main --server` (Used for packaged bundles, Full only)
+- **Run Server (Debug):** `uv run uvicorn server.tts_server:app --port 8000` (Full only)
 
 **Project Structure:**
 - The project is logically split into a **Frontend Daemon** (`app/`) and an **Inference Server** (`server/`).

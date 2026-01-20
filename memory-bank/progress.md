@@ -39,6 +39,9 @@
 - **Audio Success**: Native `pyaudio` playback confirmed functional.
 - **Standalone Packaging**:
     - Refactored `build_release.py` for Nuitka standalone builds.
+    - Implemented **Lite vs Full build split** to reduce package size for cloud-only users.
+    - Optimized `pyproject.toml` with `optional-dependencies` for heavy ML libraries.
+    - Updated `app/settings.py` to dynamically detect available TTS engines based on installed dependencies.
     - Implemented **GitHub Actions** (`.github/workflows/build.yml`) for automated builds.
     - Verified build fix for Issue #6 (memory-constrained runner fix).
 

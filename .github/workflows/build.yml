@@ -28,20 +28,34 @@ jobs:
         with:
           python-version-file: ".python-version"
 
-      - name: Install Dependencies
-        run: uv sync
+      - name: Build Lite Version
+        run: |
+          uv sync
+          uv run python build_release.py --lite
 
-      - name: Build Executable with Nuitka
-        run: uv run python build_release.py
+      - name: Build Full Version
+        run: |
+          uv sync --extra local-tts
+          uv run python build_release.py
 
-      - name: Create Release Zip
+      - name: Create Release Zips
         shell: pwsh
         run: |
-          Compress-Archive -Path dist/ScreenBanter_v1.0 -DestinationPath ScreenBanter_Windows.zip
+          $Version = (Get-Content pyproject.toml | ConvertFrom-StringData).version # Simplified for example, might need better parsing
+          # Better way to get version from pyproject.toml
+          $Version = (Select-String -Path pyproject.toml -Pattern 'version = "(.*)"').Matches.Groups[1].Value
+          
+          Compress-Archive -Path dist/ScreenBanter_Lite_v$Version -DestinationPath ScreenBanter_Lite_v$Version.zip
+          Compress-Archive -Path dist/ScreenBanter_Full_v$Version -DestinationPath ScreenBanter_Full_v$Version.zip
 
-      - name: Upload Artifact
+      - name: Upload Lite Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ScreenBanter_Windows_Executable
-          path: ScreenBanter_Windows.zip
-          retention-days: 5
+          name: ScreenBanter_Lite_v0.1.0
+          path: ScreenBanter_Lite_v*.zip
+
+      - name: Upload Full Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ScreenBanter_Full_v0.1.0
+          path: ScreenBanter_Full_v*.zip

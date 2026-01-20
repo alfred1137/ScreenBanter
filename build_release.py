@@ -12,77 +12,246 @@ def run_command(command, env=None):
         sys.exit(1)
 
 def build():
+
+    # Parse arguments
+
+    is_lite = "--lite" in sys.argv
+
+    version_suffix = "Lite" if is_lite else "Full"
+
+    
+
     # Define paths
+
     project_root = os.path.dirname(os.path.abspath(__file__))
+
     dist_dir = os.path.join(project_root, "dist")
+
     
-    # Clean previous build
-    if os.path.exists(dist_dir):
-        print("Cleaning previous build...")
-        try:
-            shutil.rmtree(dist_dir)
-        except Exception as e:
-            print(f"Warning: Could not clean dist directory: {e}")
+
+            # Clean previous build (Specific to this version)
+
     
+
+            if not os.path.exists(dist_dir):
+
+    
+
+                os.makedirs(dist_dir)
+
+    
+
+            
+
+    
+
+            # Nuitka creates a .dist folder. 
+
+    
+
+            # With --output-filename=ScreenBanter.exe, it usually creates ScreenBanter.dist
+
+    
+
+            target_dist_folder = os.path.join(dist_dir, "ScreenBanter.dist")
+
+    
+
+            if os.path.exists(target_dist_folder):
+
+    
+
+                print(f"Cleaning previous temporary build folder: {target_dist_folder}")
+
+    
+
+                shutil.rmtree(target_dist_folder)
+
+    
+
     # Setup environment
+
     env = os.environ.copy()
-    # Add VibeVoice to PYTHONPATH so Nuitka can find the 'vibevoice' package
+
     vibevoice_repo_path = os.path.join(project_root, "third_party", "VibeVoice")
-    if os.path.exists(vibevoice_repo_path):
+
+    if os.path.exists(vibevoice_repo_path) and not is_lite:
+
         env["PYTHONPATH"] = vibevoice_repo_path + os.pathsep + env.get("PYTHONPATH", "")
+
         print(f"Added to PYTHONPATH: {vibevoice_repo_path}")
 
+
+
     # Nuitka arguments
+
     nuitka_cmd = [
+
         sys.executable, "-m", "nuitka",
+
         "--standalone",
-        "--assume-yes-for-downloads", # Avoid hanging in CI
-        "--jobs=1",                   # Limit parallelism to reduce memory usage in CI
-        "--python-flag=no_site",      # Don't use system site-packages
+
+        "--assume-yes-for-downloads",
+
+        "--jobs=1",
+
+        "--python-flag=no_site",
+
         
+
         # Plugins
-        "--enable-plugin=tk-inter",   # Required for customtkinter
-        "--enable-plugin=torch",      # Highly recommended for torch-based apps
+
+        "--enable-plugin=tk-inter",
+
         
-        # Core packages
-        "--include-package=uvicorn",
-        "--include-package=fastapi",
-        "--include-package=pystray",
-        "--include-package=PIL",
-        "--include-package=numpy",
-        "--include-package=torch",
-        "--include-package=transformers",
-        "--include-package=customtkinter",
-        "--include-package=darkdetect", # Needed by customtkinter
-        "--include-package=dxcam",
-        "--include-package=google",
-        "--include-package=huggingface_hub",
-                "--include-package=accelerate",
-                "--include-package=av",
-                "--include-package=soundfile",
+
+                # Core packages (Always included)
+
+        
+
+                "--include-package=pystray",
+
+        
+
+                "--include-package=PIL",
+
+        
+
+                "--include-package=numpy",
+
+        
+
+                "--include-package=customtkinter",
+
+        
+
+                "--include-package=darkdetect",
+
+        
+
+                "--include-package=dxcam",
+
+        
+
+                "--include-package=google",
+
+        
+
+                "--include-package=requests",
+
+        
+
                 "--include-package=pyaudio",
-                
-                # Application packages
+
+        
+
+        # Application packages
+
         "--include-package=app",
-        "--include-package=server",
+
         
-        # Third party
-        "--include-package=vibevoice",
-        
+
         # Data files
+
         "--include-data-dir=assets=assets",
-        # Include VibeVoice voice presets as data
-        "--include-data-dir=third_party/VibeVoice/demo/voices=third_party/VibeVoice/demo/voices",
+
         
+
         # Output
+
         "--output-dir=dist",
+
         "--output-filename=ScreenBanter.exe",
+
         
+
         # Main entry point
+
         "app/main.py"
+
     ]
 
-    # Handle Icon if it exists as .ico (Nuitka requirement)
+
+
+        # Add Heavy Dependencies ONLY for Full version
+
+
+
+        if not is_lite:
+
+
+
+            print(">>> Configuring FULL build with Local TTS support...")
+
+
+
+            nuitka_cmd.extend([
+
+
+
+                "--include-package=uvicorn",
+
+
+
+                "--include-package=fastapi",
+
+
+
+                "--enable-plugin=torch",
+
+
+
+                "--include-package=torch",
+
+
+
+                "--include-package=transformers",
+
+
+
+                "--include-package=huggingface_hub",
+
+
+
+                "--include-package=accelerate",
+
+
+
+                "--include-package=av",
+
+
+
+                "--include-package=soundfile",
+
+
+
+                "--include-package=server", # Only need server in Full
+
+
+
+                "--include-package=vibevoice",
+
+
+
+                # Include VibeVoice voice presets
+
+
+
+                "--include-data-dir=third_party/VibeVoice/demo/voices=third_party/VibeVoice/demo/voices",
+
+
+
+            ])
+
+    else:
+
+        print(">>> Configuring LITE build (Cloud TTS only)...")
+
+
+
+    # Handle Icon
+
+ if it exists as .ico (Nuitka requirement)
     icon_path = os.path.join(project_root, "assets", "icon.ico")
     if os.path.exists(icon_path):
         nuitka_cmd.append(f"--windows-icon-from-ico={icon_path}")
@@ -91,37 +260,40 @@ def build():
     run_command(nuitka_cmd, env=env)
     
     # Post-build: Copy external resources
-    # Nuitka 2.x creates a folder ending in .dist
     possible_dirs = [d for d in os.listdir(dist_dir) if d.endswith(".dist")]
     if not possible_dirs:
         print("Could not locate build output directory.")
         sys.exit(1)
         
     build_output_dir = os.path.join(dist_dir, possible_dirs[0])
-    print(f"Build located at: {build_output_dir}")
     
-    # Copy Models
-    print("Copying models...")
-    src_models = os.path.join(project_root, "models")
-    dst_models = os.path.join(build_output_dir, "models")
-    if os.path.exists(src_models):
-        if os.path.exists(dst_models):
-            shutil.rmtree(dst_models)
-        shutil.copytree(src_models, dst_models)
-    else:
-        print("WARNING: models directory not found.")
-
+    # Copy Models (ONLY for Full)
+    if not is_lite:
+        print("Copying local models...")
+        src_models = os.path.join(project_root, "models")
+        dst_models = os.path.join(build_output_dir, "models")
+        if os.path.exists(src_models):
+            if os.path.exists(dst_models):
+                shutil.rmtree(dst_models)
+            shutil.copytree(src_models, dst_models)
+    
     # Copy .env example
     print("Copying configuration...")
     shutil.copy(os.path.join(project_root, ".env.example"), os.path.join(build_output_dir, ".env"))
 
-    # Rename the folder to ScreenBanter
-    final_output = os.path.join(dist_dir, "ScreenBanter_v1.0")
+    # Rename the folder
+    import tomllib
+    with open(os.path.join(project_root, "pyproject.toml"), "rb") as f:
+        pyproject = tomllib.load(f)
+    version = pyproject.get("project", {}).get("version", "0.1.0")
+    
+    final_folder_name = f"ScreenBanter_{version_suffix}_v{version}"
+    final_output = os.path.join(dist_dir, final_folder_name)
     if os.path.exists(final_output):
         shutil.rmtree(final_output)
     os.rename(build_output_dir, final_output)
     
-    print(f"\nBuild Complete! Output available at: {final_output}")
+    print(f"\n{version_suffix} Build Complete! Output: {final_output}")
 
 if __name__ == "__main__":
     build()

@@ -94,5 +94,20 @@ class SettingsManager:
     def get_audio_config(self) -> Dict[str, Any]:
         return self.settings.get("audio", self.DEFAULT_SETTINGS["audio"])
 
+    def is_local_tts_supported(self) -> bool:
+        """
+        Checks if the local TTS engine (VibeVoice) is supported by checking
+        for the presence of major dependencies like torch, fastapi, and uvicorn.
+        """
+        try:
+            import torch
+            import fastapi
+            import uvicorn
+            # Also check if the server code is actually present
+            server_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "server", "tts_server.py")
+            return os.path.exists(server_path)
+        except ImportError:
+            return False
+
 # Global instance
 settings_manager = SettingsManager()

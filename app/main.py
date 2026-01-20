@@ -89,6 +89,10 @@ class ScreenBanterApp:
         threading.Thread(target=_play, daemon=True).start()
 
     def start_tts_server(self):
+        if not settings_manager.is_local_tts_supported():
+            print("DEBUG: Local TTS dependencies not found. Cannot start local server.")
+            return False
+
         print("Checking for existing TTS server...")
         try:
             resp = requests.get("http://localhost:8000/health", timeout=1)
@@ -296,8 +300,17 @@ class ScreenBanterApp:
         
         success = True
         if tts_provider == "local":
-            success = self.start_tts_server()
-        else:
+            if not settings_manager.is_local_tts_supported():
+                print("WARNING: Local TTS is selected but dependencies are missing (Lite version).")
+                if self.icon:
+                    self.icon.notify("Local TTS not supported in this version. Switching to Cloud.", "Lite Version Active")
+                # Fallback to gemini if local is not available
+                settings_manager.set("audio", "tts_provider", "gemini")
+                tts_provider = "gemini"
+            else:
+                success = self.start_tts_server()
+        
+        if tts_provider != "local":
             print(f"DEBUG: Skipping local TTS server as provider is '{tts_provider}'")
 
         if success:
