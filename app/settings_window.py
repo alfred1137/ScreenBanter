@@ -235,7 +235,7 @@ class SettingsWindow(ctk.CTkToplevel):
             ctk.CTkLabel(self.provider_container, text="Gemini Cloud Model:").grid(row=0, column=0, padx=10, pady=5, sticky="w")
             self.cloud_model_entry = ctk.CTkEntry(self.provider_container, width=200)
             self.cloud_model_entry.grid(row=1, column=0, padx=10, pady=5, sticky="w")
-            self.cloud_model_entry.insert(0, settings_manager.get("audio", "cloud_model") or "gemini-2.0-flash")
+            self.cloud_model_entry.insert(0, settings_manager.get("audio", "cloud_model") or "gemini-2.5-flash-preview-tts")
             
             ctk.CTkLabel(self.provider_container, text="Gemini Voice Name:").grid(row=2, column=0, padx=10, pady=5, sticky="w")
             self.cloud_voice_option = ctk.CTkOptionMenu(self.provider_container, 

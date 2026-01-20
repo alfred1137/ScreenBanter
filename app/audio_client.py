@@ -89,7 +89,7 @@ class AudioClient:
         play_thread = None
 
         try:
-            model_id = settings_manager.get("audio", "cloud_model") or "gemini-2.0-flash"
+            model_id = settings_manager.get("audio", "cloud_model") or "gemini-2.5-flash-preview-tts"
             voice_name = settings_manager.get("audio", "cloud_voice") or "Puck"
 
             # Use generate_content with audio modality

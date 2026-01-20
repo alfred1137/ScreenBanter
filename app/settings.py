@@ -16,7 +16,7 @@ class SettingsManager:
             "speed": 1.0,
             "buffer_seconds": 4.0,
             "playback_mode": "stream",
-            "cloud_model": "gemini-2.0-flash-exp",
+            "cloud_model": "gemini-2.5-flash-preview-tts",
             "cloud_voice": "Puck"
         },
         "capture": {

@@ -20,7 +20,7 @@ def test_cloud_tts():
     
     # Configure settings for cloud TTS
     settings_manager.set("audio", "tts_provider", "gemini")
-    settings_manager.set("audio", "cloud_model", "gemini-2.0-flash-exp")
+    settings_manager.set("audio", "cloud_model", "gemini-2.5-flash-preview-tts")
     settings_manager.set("audio", "cloud_voice", "Puck")
     
     client = AudioClient()
