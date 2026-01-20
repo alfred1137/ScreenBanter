@@ -23,9 +23,28 @@ jobs:
           submodules: recursive
 
       - name: Increase Pagefile (Avoid OOM)
-        uses: pierotofy/set-swap-space@master
-        with:
-          swap-size-gb: 12
+        shell: pwsh
+        run: |
+          Write-Host "Initial Pagefile settings:"
+          Get-CimInstance Win32_PageFileSetting | Select-Object Name, InitialSize, MaximumSize
+
+          # Disable automatic page file management
+          $ComputerSystem = Get-CimInstance Win32_ComputerSystem
+          Set-CimInstance -CimInstance $ComputerSystem -Property @{AutomaticManagedPagefile = $False}
+
+          # Create or Update Pagefile to 12GB
+          $PagefilePath = "C:\pagefile.sys"
+          $SizeInMB = 12288 # 12GB
+          
+          $CurrentPagefile = Get-CimInstance Win32_PageFileSetting -Filter "Name='$PagefilePath'"
+          if ($null -eq $CurrentPagefile) {
+              New-CimInstance -ClassName Win32_PageFileSetting -Property @{Name=$PagefilePath; InitialSize=$SizeInMB; MaximumSize=$SizeInMB}
+          } else {
+              Set-CimInstance -CimInstance $CurrentPagefile -Property @{InitialSize=$SizeInMB; MaximumSize=$SizeInMB}
+          }
+
+          Write-Host "Updated Pagefile settings:"
+          Get-CimInstance Win32_PageFileSetting | Select-Object Name, InitialSize, MaximumSize
 
       - name: Install uv
         uses: astral-sh/setup-uv@v5
