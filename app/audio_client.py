@@ -57,7 +57,9 @@ class AudioClient:
     def stream_and_play(self, text, voice_key=None):
         """
         Requests audio stream from server and queues chunks for playback.
-        Implements pre-buffering to ensure smooth playback under load.
+        Supports two modes:
+        1. 'stream': Implements pre-buffering for low latency.
+        2. 'pre-generate': Waits for the full audio to be generated before playback.
         """
         if not text.strip():
             print("DEBUG: Empty text, skipping audio.")
@@ -65,47 +67,63 @@ class AudioClient:
 
         print(f"DEBUG: Requesting audio for text: {text[:30]}... (Voice: {voice_key})")
         self.is_playing = True
-        
-        # Recalculate buffer settings (in case they changed)
-        buffer_seconds = settings_manager.get("audio", "buffer_seconds") or 4.0
-        bytes_per_sample = 2 # 16-bit
-        buffer_min_bytes = int(self.rate * self.channels * bytes_per_sample * buffer_seconds)
-        
+
+        # Get playback mode from settings
+        playback_mode = settings_manager.get("audio", "playback_mode") or "stream"
         play_thread = None
-        started_playing = False
-        accumulated_bytes = 0
-        chunks_received = 0
 
         try:
-            # Increased timeout to 45s to handle model warm-up and long generation times
             payload = {"text": text}
             if voice_key:
                 payload["voice_key"] = voice_key
-                
+
+            # Increased timeout to 45s to handle model warm-up and long generation times
             response = requests.post(self.server_url, json=payload, stream=True, timeout=45)
             response.raise_for_status()
-            
-            for chunk in response.iter_content(chunk_size=1024):
-                if chunk:
-                    self.chunk_queue.put(chunk)
-                    accumulated_bytes += len(chunk)
-                    chunks_received += 1
-                    
-                    # Check if we should start playing (Buffer filled)
-                    if not started_playing and accumulated_bytes >= buffer_min_bytes:
-                        print(f"DEBUG: Buffer filled ({accumulated_bytes} bytes). Starting playback.")
-                        play_thread = threading.Thread(target=self._play_worker)
-                        play_thread.start()
-                        started_playing = True
 
-            print(f"DEBUG: Finished receiving audio. Total chunks: {chunks_received}")
-            
-            # Stream finished. If playback hasn't started yet (e.g. short audio), start now.
-            if not started_playing:
-                print(f"DEBUG: Stream finished before buffer fill ({accumulated_bytes} bytes). Starting playback immediately.")
-                play_thread = threading.Thread(target=self._play_worker)
-                play_thread.start()
-                started_playing = True
+            if playback_mode == "stream":
+                # --- STREAMING LOGIC ---
+                print("DEBUG: Playback mode: stream")
+                buffer_seconds = settings_manager.get("audio", "buffer_seconds") or 4.0
+                bytes_per_sample = 2  # 16-bit
+                buffer_min_bytes = int(self.rate * self.channels * bytes_per_sample * buffer_seconds)
+
+                started_playing = False
+                accumulated_bytes = 0
+                chunks_received = 0
+
+                for chunk in response.iter_content(chunk_size=1024):
+                    if chunk:
+                        self.chunk_queue.put(chunk)
+                        accumulated_bytes += len(chunk)
+                        chunks_received += 1
+
+                        if not started_playing and accumulated_bytes >= buffer_min_bytes:
+                            print(f"DEBUG: Buffer filled ({accumulated_bytes} bytes). Starting playback.")
+                            play_thread = threading.Thread(target=self._play_worker)
+                            play_thread.start()
+                            started_playing = True
+
+                print(f"DEBUG: Finished receiving audio stream. Total chunks: {chunks_received}")
+
+                if not started_playing and not self.chunk_queue.empty():
+                    print(f"DEBUG: Stream finished before buffer fill ({accumulated_bytes} bytes). Starting playback.")
+                    play_thread = threading.Thread(target=self._play_worker)
+                    play_thread.start()
+
+            elif playback_mode == "pre-generate":
+                # --- PRE-GENERATE LOGIC ---
+                print("DEBUG: Playback mode: pre-generate. Downloading full audio.")
+                chunks_received = 0
+                for chunk in response.iter_content(chunk_size=1024):
+                    if chunk:
+                        self.chunk_queue.put(chunk)
+                        chunks_received += 1
+
+                print(f"DEBUG: Full audio downloaded. Total chunks: {chunks_received}. Starting playback.")
+                if not self.chunk_queue.empty():
+                    play_thread = threading.Thread(target=self._play_worker)
+                    play_thread.start()
 
         except Exception as e:
             print(f"Audio client error: {e}")
@@ -115,7 +133,13 @@ class AudioClient:
                 play_thread.join()
                 print("DEBUG: Audio playback thread joined.")
             else:
-                print("DEBUG: Audio playback thread was never started.")
+                # Ensure queue is cleared if playback never started
+                while not self.chunk_queue.empty():
+                    try:
+                        self.chunk_queue.get_nowait()
+                    except queue.Empty:
+                        break
+                print("DEBUG: Audio playback thread was not started or an error occurred.")
 
     def __del__(self):
         self.p.terminate()

@@ -13,7 +13,8 @@ class SettingsManager:
             "voice_key": "en-Davis_man",
             "volume": 1.0,
             "speed": 1.0,
-            "buffer_seconds": 4.0
+            "buffer_seconds": 4.0,
+            "playback_mode": "stream"
         },
         "capture": {
             "use_region": True,
