@@ -82,7 +82,7 @@ ScreenBanter is an amateur project that marries **Google’s Gemini Vision** (fo
 
 ### 🌟 Key Features
 *   **Dual-Engine TTS:** Choose between **Microsoft VibeVoice** (Local, Private, Low Latency) or **Gemini Cloud TTS** (High Quality, Low CPU usage) via `gemini-2.5-flash-preview-tts`.
-*   **Smart Vision:** Uses Gemini Flash Lite (`models/gemini-flash-lite-latest`) via Gemini API for intelligent text extraction and context-aware merging of multiple screenshots.
+*   **Smart Vision:** Uses **Gemini 2.5 Flash Lite** (`models/gemini-flash-lite-latest`) via Gemini API for intelligent text extraction and context-aware merging of multiple screenshots.
 *   **Low-latency local TTS:** Powered by VibeVoice for high-quality audio without relying on cloud TTS credits.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>

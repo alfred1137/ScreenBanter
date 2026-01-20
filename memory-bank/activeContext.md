@@ -41,7 +41,7 @@
 
 **Active Decisions and Considerations:**
 - **Model Selection**: 
-    - **OCR Engine**: `gemini-flash-lite-latest` (Gemini 2.0 Flash Lite) selected for high-speed, cost-effective multimodal extraction.
+    - **OCR Engine**: `gemini-flash-lite-latest` (Gemini 2.5 Flash Lite) selected for high-speed, cost-effective multimodal extraction.
     - **Cloud TTS Engine**: `gemini-2.5-flash-preview-tts` (Native Speech) selected for its natural performance and 30 unique voice styles (Zephyr, Puck, Kore, etc.).
 - **Release Versioning**: Standardizing on `v0.1.0` for the initial public launch to reflect "Beta" status while acknowledging feature completeness.
 - **GUI Architecture**: Shifted from a transient Settings window to a persistent, hidden HUD root window. The HUD and Settings are now managed within a single Tkinter loop running in a dedicated thread. This ensures responsiveness and allows the HUD to stay active without blocking the system tray icon logic.

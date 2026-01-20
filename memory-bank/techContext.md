@@ -2,7 +2,7 @@
 
 **Technologies Used:**
 - **Python:** 3.10+ (Required for compatibility with certain ML libraries).
-- **Google Gemini 2.0 Flash Lite API (`gemini-flash-lite-latest`):** For high-speed, multi-modal OCR.
+- **Google Gemini 2.5 Flash Lite API (`gemini-flash-lite-latest`):** For high-speed, multi-modal OCR.
 - **Google Gemini 2.5 Flash Preview TTS (`gemini-2.5-flash-preview-tts`):** For high-quality native cloud-based text-to-speech.
 - **Microsoft VibeVoice-0.5B:** Local TTS model, running on `torch` with CUDA acceleration.
 

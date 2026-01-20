@@ -4,7 +4,7 @@
 ScreenBanter is a real-time desktop narration application. It captures screen content, uses Google's Gemini API for text extraction (OCR), and then reads the text aloud using either a locally hosted VibeVoice TTS model or the **Gemini 2.5 Flash Preview TTS** cloud service.
 
 ### AI Models
-- **OCR Engine**: `gemini-flash-lite-latest` (Gemini 2.0 Flash Lite)
+- **OCR Engine**: `gemini-flash-lite-latest` (Gemini 2.5 Flash Lite)
 - **Cloud TTS Engine**: `gemini-2.5-flash-preview-tts` (Native Speech Generation)
 
 ### Key Components

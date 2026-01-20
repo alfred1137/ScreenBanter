@@ -11,7 +11,7 @@ graph TD
     QueueTrigger -->|Add to List| ImageQueue[Screenshot Queue]
     ProcessTrigger -->|Send List| VisionEngine
 
-    Capture -->|Single Frame| VisionEngine[Vision Engine (Gemini 2.0 Flash Lite API)]
+    Capture -->|Single Frame| VisionEngine[Vision Engine (Gemini 2.5 Flash Lite API)]
     ImageQueue -->|Batch Frames| VisionEngine
 
     VisionEngine -- Extracted Text --> LocalInferenceServer[Local Inference Server (FastAPI + VibeVoice-0.5B - Full Version Only)]
