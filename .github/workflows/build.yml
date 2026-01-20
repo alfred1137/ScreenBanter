@@ -25,9 +25,6 @@ jobs:
       - name: Increase Pagefile (Avoid OOM)
         shell: pwsh
         run: |
-          Write-Host "Initial Pagefile settings:"
-          Get-CimInstance Win32_PageFileSetting | Select-Object Name, InitialSize, MaximumSize
-
           # Disable automatic page file management
           $ComputerSystem = Get-CimInstance Win32_ComputerSystem
           Set-CimInstance -CimInstance $ComputerSystem -Property @{AutomaticManagedPagefile = $False}
@@ -36,15 +33,14 @@ jobs:
           $PagefilePath = "C:\pagefile.sys"
           $SizeInMB = 12288 # 12GB
           
-          $CurrentPagefile = Get-CimInstance Win32_PageFileSetting -Filter "Name='$PagefilePath'"
+          $CurrentPagefile = Get-CimInstance Win32_PageFileSetting | Where-Object { $_.Name -eq $PagefilePath }
           if ($null -eq $CurrentPagefile) {
               New-CimInstance -ClassName Win32_PageFileSetting -Property @{Name=$PagefilePath; InitialSize=$SizeInMB; MaximumSize=$SizeInMB}
           } else {
               Set-CimInstance -CimInstance $CurrentPagefile -Property @{InitialSize=$SizeInMB; MaximumSize=$SizeInMB}
           }
 
-          Write-Host "Updated Pagefile settings:"
-          Get-CimInstance Win32_PageFileSetting | Select-Object Name, InitialSize, MaximumSize
+          Write-Host "Pagefile settings configured to 12GB."
 
       - name: Install uv
         uses: astral-sh/setup-uv@v5
@@ -87,6 +83,6 @@ jobs:
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ScreenBanter_${{ matrix.build_type }}_v0.1.0
+          name: ScreenBanter_${{ matrix.build_type }}_${{ github.ref_name }}
           path: "*.zip"
           retention-days: 5
