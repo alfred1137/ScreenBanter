@@ -1,16 +1,16 @@
 # ScreenBanter
 
 ## Project Overview
-ScreenBanter is a real-time desktop narration application. It captures screen content, uses Google's Gemini API for text extraction (OCR), and then reads the text aloud using a locally hosted VibeVoice TTS model.
+ScreenBanter is a real-time desktop narration application. It captures screen content, uses Google's Gemini API for text extraction (OCR), and then reads the text aloud using either a locally hosted VibeVoice TTS model or the **Gemini 2.5 Flash Preview TTS** cloud service.
 
 ### Key Components
-1.  **Frontend Daemon**: System tray app, screen capture, Gemini API integration.
-2.  **TTS Server**: Local FastAPI server for VibeVoice inference.
+1.  **Frontend Daemon**: System tray app, screen capture, Gemini API integration (Vision + TTS).
+2.  **TTS Server**: Optional local FastAPI server for VibeVoice inference.
 
 ## Technology Stack
 - **Core**: Python 3.10+
 - **Manager**: uv
-- **AI/ML**: Google Gemini (Vision), VibeVoice (TTS)
+- **AI/ML**: Google Gemini (Vision & TTS), VibeVoice (Local TTS)
 - **Web**: FastAPI, Uvicorn
 - **Desktop**: DXcam (Capture), pystray (Tray), global_hotkeys
 

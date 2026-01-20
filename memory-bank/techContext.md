@@ -3,7 +3,9 @@
 **Technologies Used:**
 - **Python:** 3.10+ (Required for compatibility with certain ML libraries).
 - **Google Gemini 2.0 Flash Lite API:** For high-speed, multi-modal OCR.
+- **Google Gemini 2.5 Flash Preview TTS:** For high-quality cloud-based text-to-speech.
 - **Microsoft VibeVoice-0.5B:** Local TTS model, running on `torch` with CUDA acceleration.
+- **google-genai:** Unified Python SDK for Gemini Vision and TTS.
 - **bitsandbytes:** 8-bit/4-bit optimization for model quantization.
 - **FastAPI/Uvicorn:** Backend server infrastructure.
 - **DXcam:** Windows-specific high-speed screen capture.

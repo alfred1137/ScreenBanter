@@ -74,31 +74,12 @@
 <a id="overview"></a>
 ## 📖 Overview
 
-ScreenBanter is an amateur project that tries to marry **Google’s Gemini Vision** (for high-speed OCR via API) with **Microsoft’s VibeVoice-0.5B** (for local neural TTS) to provide desktop narration. It features capture-to-speech and an intelligent multi-screenshot queuing system.
+ScreenBanter is an amateur project that marries **Google’s Gemini Vision** (for high-speed OCR) and the new **Gemini 2.5 Flash Preview TTS** (for cloud audio) with **Microsoft’s VibeVoice-0.5B** (for local neural TTS) to provide real-time desktop narration. It features capture-to-speech and an intelligent multi-screenshot queuing system.
 
-<details>
-<summary>Click to read the story behind the project idea...</summary>
-<br />
-    <p>
-    The idea for this project emerged when I was playing a story-heavy turn-based RPG game called <strong>Battle Brothers</strong>. As a non-native speaker of English I occasionally struggle to maintain focus on the wall of text during game play (e.g. events, encounters, quests). I tried using the Windows build-in narrator but the result was underwhelming.    </p>
-    <p>
-    On a random day, I came across the <a href="https://github.com/microsoft/VibeVoice/blob/main/docs/vibevoice-realtime-0.5b.md"><strong>Microsoft’s VibeVoice-0.5B</strong></a> project. It has a colab demo that was so lightweight that you can run in a browser. Then birth this project.    </p>
-</details>
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-<!-- FEATURES -->
-<a id="features"></a>
-## ✨ Features
-
-*   **Instant Narration:** Capture and narrate the screen with a single hotkey (`Ctrl + Alt + S`).
-*   **Batch Mode (Queueing):** Capture multiple windows or pages (`F10`) and process them as a single cohesive narrative (`F11`).
-*   **Custom Region Capture:** Precisely define which part of the screen to narrate using an interactive transparent selector.
-*   **Banter HUD:** A sleek, non-intrusive overlay that provides real-time status updates (Scanning, Speaking) and displays the OCR text without stealing focus from your game.
-*   **Performance Mode:** Optimizes resource usage for gaming by using 4-bit quantization (saving ~1GB VRAM) and boosting process priority.
-*   **Local Neural TTS:** Powered by VibeVoice for high-quality, low-latency audio without relying on cloud TTS credits.
-*   **Settings GUI:** A modern `CustomTkinter` interface for managing hotkeys, voices, and audio devices.
+### 🌟 Key Features
+*   **Dual-Engine TTS:** Choose between **Microsoft VibeVoice** (Local, Private, Low Latency) or **Gemini Cloud TTS** (High Quality, Low CPU usage) via `gemini-2.5-flash-preview-tts`.
 *   **Smart Vision:** Uses Gemini Flash Lite (`models/gemini-flash-lite-latest`) via Gemini API for intelligent text extraction and context-aware merging of multiple screenshots.
+*   **Low-latency local TTS:** Powered by VibeVoice for high-quality audio without relying on cloud TTS credits.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
