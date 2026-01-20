@@ -292,7 +292,15 @@ class ScreenBanterApp:
         Background initialization task to start the server and register hotkeys
         without blocking the UI thread.
         """
-        if self.start_tts_server():
+        tts_provider = settings_manager.get("audio", "tts_provider") or "local"
+        
+        success = True
+        if tts_provider == "local":
+            success = self.start_tts_server()
+        else:
+            print(f"DEBUG: Skipping local TTS server as provider is '{tts_provider}'")
+
+        if success:
             if self.icon:
                 self.icon.title = "ScreenBanter: Active"
                 self.icon.notify("ScreenBanter is ready!", "Startup Complete")

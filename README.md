@@ -296,6 +296,7 @@ Project Link: [https://github.com/alfred1137/ScreenBanter](https://github.com/al
 <a id="changelog"></a>
 ## 📝 Changelog
 
+*   **2026-01-20**: Verified full integration workflow (HUD, 4-bit TTS, Region Capture) on Windows 11 with CUDA 12.1.
 *   **2026-01-16**: Added **Performance Mode** (4-bit quantization, priority boosting) and **Banter HUD** for seamless gaming integration.
 *   **2026-01-14**: Enhanced documentation, added Region Capture and Settings GUI polish.
 *   **2026-01-10**: Implemented Settings GUI and dynamic configuration infrastructure.

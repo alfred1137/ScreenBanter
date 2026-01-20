@@ -31,8 +31,9 @@ graph TD
     - **Settings Window (`app/settings_window.py`)** is now a `CTkToplevel` child of the HUD, sharing the same event loop.
 - **Performance Mode (Game Optimization):**
     - A "Master Toggle" in settings controls a suite of backend optimizations.
-    - **Configuration Injection:** The frontend daemon injects environment variables (e.g., `LOAD_IN_4BIT="true"`) when spawning the TTS server subprocess based on `settings.json`.
-    - **Quantization:** Uses `bitsandbytes` 4-bit quantization to reduce VRAM footprint from ~1.5GB to <500MB.
+    - **TTS Provider Strategy:** The app supports switching between `local` (VibeVoice) and `gemini` (Cloud) TTS. This is handled by the `AudioClient`, which routes requests based on the `tts_provider` setting.
+- **Configuration Injection:** The frontend daemon injects environment variables (e.g., `LOAD_IN_4BIT="true"`) when spawning the TTS server subprocess based on `settings.json`.
+- **Cloud TTS Integration:** Uses the `google-genai` SDK's `generate_content` method with `AUDIO` modality. The resulting audio bytes are chunked and played via the same `AudioClient` worker as the local stream.    - **Quantization:** Uses `bitsandbytes` 4-bit quantization to reduce VRAM footprint from ~1.5GB to <500MB.
     - **Priority:** The server process sets itself to `HIGH_PRIORITY_CLASS` on Windows startup.
 - **Modern Desktop GUI:** `CustomTkinter` provides a native, themed (Light/Dark mode) experience matching Windows 11 aesthetics.
 - **Settings Persistence:** A `settings.json` file in the application root stores all user preferences, managed by a centralized `SettingsManager` class.

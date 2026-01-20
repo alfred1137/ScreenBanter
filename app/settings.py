@@ -10,11 +10,14 @@ class SettingsManager:
             "process": "f11"
         },
         "audio": {
+            "tts_provider": "local",
             "voice_key": "en-Davis_man",
             "volume": 1.0,
             "speed": 1.0,
             "buffer_seconds": 4.0,
-            "playback_mode": "stream"
+            "playback_mode": "stream",
+            "cloud_model": "gemini-2.0-flash-exp",
+            "cloud_voice": "Puck"
         },
         "capture": {
             "use_region": True,

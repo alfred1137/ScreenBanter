@@ -4,7 +4,10 @@ import pyaudio
 import threading
 import queue
 import time
+import os
 from .settings import settings_manager
+from google import genai
+from google.genai import types
 
 class AudioClient:
     def __init__(self, server_url="http://localhost:8000/v1/audio/stream"):
@@ -19,6 +22,12 @@ class AudioClient:
         self.rate = 24000
         self.channels = 1
         self.format = pyaudio.paInt16
+
+        # Cloud TTS Client
+        self.genai_client = None
+        api_key = os.getenv("GEMINI_KEY")
+        if api_key:
+            self.genai_client = genai.Client(api_key=api_key)
         
     def _play_worker(self):
         """
@@ -56,16 +65,72 @@ class AudioClient:
 
     def stream_and_play(self, text, voice_key=None):
         """
-        Requests audio stream from server and queues chunks for playback.
-        Supports two modes:
-        1. 'stream': Implements pre-buffering for low latency.
-        2. 'pre-generate': Waits for the full audio to be generated before playback.
+        Requests audio from TTS provider and queues chunks for playback.
         """
         if not text.strip():
             print("DEBUG: Empty text, skipping audio.")
             return
 
-        print(f"DEBUG: Requesting audio for text: {text[:30]}... (Voice: {voice_key})")
+        tts_provider = settings_manager.get("audio", "tts_provider") or "local"
+        print(f"DEBUG: Using TTS Provider: {tts_provider}")
+
+        if tts_provider == "gemini":
+            self._stream_from_gemini(text)
+        else:
+            self._stream_from_local(text, voice_key)
+
+    def _stream_from_gemini(self, text):
+        if not self.genai_client:
+            print("ERROR: Gemini client not initialized. Check GEMINI_KEY.")
+            return
+
+        print(f"DEBUG: Requesting Gemini Cloud TTS for text: {text[:30]}...")
+        self.is_playing = True
+        play_thread = None
+
+        try:
+            model_id = settings_manager.get("audio", "cloud_model") or "gemini-2.0-flash"
+            voice_name = settings_manager.get("audio", "cloud_voice") or "Puck"
+
+            # Use generate_content with audio modality
+            response = self.genai_client.models.generate_content(
+                model=model_id,
+                contents=text,
+                config=types.GenerateContentConfig(
+                    response_modalities=["AUDIO"],
+                    speech_config=types.SpeechConfig(
+                        voice_config=types.VoiceConfig(
+                            prebuilt_voice_config=types.PrebuiltVoiceConfig(
+                                voice_name=voice_name
+                            )
+                        )
+                    )
+                )
+            )
+
+            if response.audio_data:
+                # Gemini returns full audio data. We chunk it for the play worker.
+                # Note: We assume 24kHz Mono 16-bit PCM for now.
+                audio_data = response.audio_data
+                chunk_size = 4096
+                for i in range(0, len(audio_data), chunk_size):
+                    self.chunk_queue.put(audio_data[i:i + chunk_size])
+                
+                print(f"DEBUG: Received {len(audio_data)} bytes of audio from Gemini.")
+                play_thread = threading.Thread(target=self._play_worker)
+                play_thread.start()
+            else:
+                print("DEBUG: No audio data in Gemini response.")
+
+        except Exception as e:
+            print(f"Gemini Cloud TTS error: {e}")
+        finally:
+            self.is_playing = False
+            if play_thread:
+                play_thread.join()
+
+    def _stream_from_local(self, text, voice_key):
+        print(f"DEBUG: Requesting local audio for text: {text[:30]}... (Voice: {voice_key})")
         self.is_playing = True
 
         # Get playback mode from settings

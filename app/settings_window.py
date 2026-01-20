@@ -165,30 +165,36 @@ class SettingsWindow(ctk.CTkToplevel):
         label = ctk.CTkLabel(self.current_frame, text="Audio Settings", font=ctk.CTkFont(size=16, weight="bold"))
         label.grid(row=0, column=0, padx=10, pady=(0, 20), sticky="w")
 
-        # Voice Selection
-        voice_label = ctk.CTkLabel(self.current_frame, text="Voice Preset:")
-        voice_label.grid(row=1, column=0, padx=10, pady=5, sticky="w")
+        # TTS Provider Toggle
+        ctk.CTkLabel(self.current_frame, text="TTS Provider:", font=ctk.CTkFont(weight="bold")).grid(row=1, column=0, padx=10, pady=(10, 5), sticky="w")
+        self.provider_var = ctk.StringVar(value=settings_manager.get("audio", "tts_provider") or "local")
+        self.provider_option = ctk.CTkOptionMenu(self.current_frame, values=["local", "gemini"], 
+                                                variable=self.provider_var, command=self.on_provider_change)
+        self.provider_option.grid(row=2, column=0, padx=10, pady=5, sticky="w")
 
-        self.voice_option = ctk.CTkOptionMenu(self.current_frame, values=["Loading..."], command=self.save_audio)
-        self.voice_option.grid(row=2, column=0, padx=10, pady=5, sticky="w")
-        self.voice_option.set(settings_manager.get("audio", "voice_key"))
+        # Provider-specific Container
+        self.provider_container = ctk.CTkFrame(self.current_frame, fg_color="transparent")
+        self.provider_container.grid(row=3, column=0, sticky="nsew", pady=10)
+        
+        self.show_provider_settings()
 
+        # Common Audio Settings
         # Buffering Slider
         self.buffer_val = settings_manager.get("audio", "buffer_seconds") or 4.0
         self.buffer_label = ctk.CTkLabel(self.current_frame, text=f"Playback Buffer: {self.buffer_val:.1f}s")
-        self.buffer_label.grid(row=3, column=0, padx=10, pady=(20, 0), sticky="w")
+        self.buffer_label.grid(row=4, column=0, padx=10, pady=(20, 0), sticky="w")
         
         buffer_hint = ctk.CTkLabel(self.current_frame, text="Increases delay but prevents stuttering under high GPU/CPU usage.", 
                                      font=ctk.CTkFont(size=10, slant="italic"), wraplength=350, justify="left")
-        buffer_hint.grid(row=4, column=0, padx=10, pady=(0, 5), sticky="w")
+        buffer_hint.grid(row=5, column=0, padx=10, pady=(0, 5), sticky="w")
 
         self.buffer_slider = ctk.CTkSlider(self.current_frame, from_=0.5, to=10.0, 
                                           command=self.update_buffer_label)
-        self.buffer_slider.grid(row=5, column=0, padx=10, pady=5, sticky="ew")
+        self.buffer_slider.grid(row=6, column=0, padx=10, pady=5, sticky="ew")
         self.buffer_slider.set(self.buffer_val)
         
         save_buffer_btn = ctk.CTkButton(self.current_frame, text="Apply Buffer", command=self.save_buffer)
-        save_buffer_btn.grid(row=6, column=0, padx=10, pady=10, sticky="w")
+        save_buffer_btn.grid(row=7, column=0, padx=10, pady=10, sticky="w")
 
         # Playback Mode
         ctk.CTkLabel(self.current_frame, text="Playback Mode:", font=ctk.CTkFont(size=12, weight="bold")).grid(row=8, column=0, padx=10, pady=(20, 5), sticky="w")
@@ -204,8 +210,49 @@ class SettingsWindow(ctk.CTkToplevel):
                                                       command=self.save_audio_playback_mode)
         self.playback_mode_option.grid(row=10, column=0, padx=10, pady=5, sticky="w")
 
-        # Fetch voices from server in background
-        threading.Thread(target=self.fetch_voices, daemon=True).start()
+    def on_provider_change(self, selected_provider):
+        settings_manager.set("audio", "tts_provider", selected_provider)
+        self.show_provider_settings()
+
+    def show_provider_settings(self):
+        # Clear container
+        for widget in self.provider_container.winfo_children():
+            widget.destroy()
+
+        provider = self.provider_var.get()
+        if provider == "local":
+            voice_label = ctk.CTkLabel(self.provider_container, text="Local Voice Preset:")
+            voice_label.grid(row=0, column=0, padx=10, pady=5, sticky="w")
+
+            self.voice_option = ctk.CTkOptionMenu(self.provider_container, values=["Loading..."], command=self.save_audio_local)
+            self.voice_option.grid(row=1, column=0, padx=10, pady=5, sticky="w")
+            self.voice_option.set(settings_manager.get("audio", "voice_key"))
+
+            # Fetch voices from server in background
+            threading.Thread(target=self.fetch_voices, daemon=True).start()
+        
+        elif provider == "gemini":
+            ctk.CTkLabel(self.provider_container, text="Gemini Cloud Model:").grid(row=0, column=0, padx=10, pady=5, sticky="w")
+            self.cloud_model_entry = ctk.CTkEntry(self.provider_container, width=200)
+            self.cloud_model_entry.grid(row=1, column=0, padx=10, pady=5, sticky="w")
+            self.cloud_model_entry.insert(0, settings_manager.get("audio", "cloud_model") or "gemini-2.0-flash")
+            
+            ctk.CTkLabel(self.provider_container, text="Gemini Voice Name:").grid(row=2, column=0, padx=10, pady=5, sticky="w")
+            self.cloud_voice_option = ctk.CTkOptionMenu(self.provider_container, 
+                                                        values=["Puck", "Charon", "Kore", "Fenrir", "Aoede"],
+                                                        command=self.save_audio_cloud)
+            self.cloud_voice_option.grid(row=3, column=0, padx=10, pady=5, sticky="w")
+            self.cloud_voice_option.set(settings_manager.get("audio", "cloud_voice") or "Puck")
+
+            self.cloud_model_entry.bind("<FocusOut>", lambda e: self.save_audio_cloud())
+            self.cloud_model_entry.bind("<Return>", lambda e: self.save_audio_cloud())
+
+    def save_audio_local(self, selected_voice):
+        settings_manager.set("audio", "voice_key", selected_voice)
+
+    def save_audio_cloud(self, _=None):
+        settings_manager.set("audio", "cloud_model", self.cloud_model_entry.get().strip())
+        settings_manager.set("audio", "cloud_voice", self.cloud_voice_option.get())
 
     def update_buffer_label(self, val):
         self.buffer_label.configure(text=f"Playback Buffer: {float(val):.1f}s")
@@ -247,9 +294,6 @@ class SettingsWindow(ctk.CTkToplevel):
                     self.voice_option.set(current_voice)
         except Exception as e:
             print(f"Error updating voice options: {e}")
-
-    def save_audio(self, selected_voice):
-        settings_manager.set("audio", "voice_key", selected_voice)
 
     def save_audio_playback_mode(self, selected_mode):
         settings_manager.set("audio", "playback_mode", selected_mode)
