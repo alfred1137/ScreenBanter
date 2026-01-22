@@ -45,6 +45,7 @@ def build():
         "--assume-yes-for-downloads",
         "--jobs=1",
         "--python-flag=no_site",
+        "--low-memory",  # Fix for C1002: compiler is out of heap space
         # Plugins
         "--enable-plugin=tk-inter",
         # Core packages (Always included)
