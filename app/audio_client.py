@@ -8,6 +8,7 @@ import os
 from .settings import settings_manager
 from google import genai
 from google.genai import types
+from .tts_manager import tts_manager
 
 class AudioClient:
     def __init__(self, server_url="http://localhost:8000/v1/audio/stream"):
@@ -23,12 +24,6 @@ class AudioClient:
         self.rate = 24000
         self.channels = 1
         self.format = pyaudio.paInt16
-
-        # Cloud TTS Client
-        self.genai_client = None
-        api_key = os.getenv("GEMINI_KEY")
-        if api_key:
-            self.genai_client = genai.Client(api_key=api_key)
         
     def _play_worker(self):
         """
@@ -87,66 +82,84 @@ class AudioClient:
                 self._stream_from_local(text, voice_key)
 
     def _stream_from_gemini(self, text):
-        if not self.genai_client:
-            print("ERROR: Gemini client not initialized. Check GEMINI_KEY.")
+        if not tts_manager.has_keys():
+            print("ERROR: Gemini TTS is not configured. Set the GEMINI_KEYS environment variable.")
             return
 
-        print(f"DEBUG: Requesting Gemini Cloud TTS for text: {text[:50]}...")
         self.is_playing = True
         play_thread = None
+        success = False
 
         try:
-            model_id = settings_manager.get("audio", "cloud_model") or "gemini-2.5-flash-preview-tts"
-            voice_name = settings_manager.get("audio", "cloud_voice") or "Puck"
+            max_key_rotations = len(tts_manager.api_keys)
+            for key_rotation_count in range(max_key_rotations):
+                api_key, _ = tts_manager.get_current()
+                genai_client = genai.Client(api_key=api_key)
 
-            # Use generate_content with audio modality
-            response = self.genai_client.models.generate_content(
-                model=model_id,
-                contents=text,
-                config=types.GenerateContentConfig(
-                    response_modalities=["AUDIO"],
-                    speech_config=types.SpeechConfig(
-                        voice_config=types.VoiceConfig(
-                            prebuilt_voice_config=types.PrebuiltVoiceConfig(
-                                voice_name=voice_name
+                max_model_rotations = len(tts_manager.MODELS)
+                for model_rotation_count in range(max_model_rotations):
+                    _, model_id = tts_manager.get_current()
+                    try:
+                        print(f"DEBUG: Requesting Gemini TTS. Key Index: {tts_manager.key_index}, Model: {model_id}")
+                        voice_name = settings_manager.get("audio", "cloud_voice") or "Puck"
+
+                        response = genai_client.models.generate_content(
+                            model=model_id,
+                            contents=text,
+                            config=types.GenerateContentConfig(
+                                response_modalities=["AUDIO"],
+                                speech_config=types.SpeechConfig(
+                                    voice_config=types.VoiceConfig(
+                                        prebuilt_voice_config=types.PrebuiltVoiceConfig(voice_name=voice_name)
+                                    )
+                                )
                             )
                         )
-                    )
-                )
-            )
 
-            if response.candidates and response.candidates[0].content.parts:
-                # The correct path according to documentation is response.candidates[0].content.parts[0].inline_data.data
-                part = response.candidates[0].content.parts[0]
-                if hasattr(part, 'inline_data') and part.inline_data:
-                    audio_data = part.inline_data.data
-                    
-                    # Check if it looks like WAV (starts with 'RIFF')
-                    if audio_data.startswith(b'RIFF'):
-                        print("DEBUG: Received WAV format from Gemini. Stripping 44-byte header.")
-                        audio_data = audio_data[44:]
-                    
-                    chunk_size = 4096
-                    for i in range(0, len(audio_data), chunk_size):
-                        self.chunk_queue.put(audio_data[i:i + chunk_size])
-                    
-                    print(f"DEBUG: Received {len(audio_data)} bytes of audio from Gemini.")
-                    play_thread = threading.Thread(target=self._play_worker, daemon=True)
-                    play_thread.start()
-                else:
-                    print(f"DEBUG: Part does not contain inline_data. Part attributes: {dir(part)}")
-            else:
-                print("DEBUG: No candidates or parts in Gemini response.")
+                        if response.candidates and response.candidates[0].content.parts:
+                            part = response.candidates[0].content.parts[0]
+                            if hasattr(part, 'inline_data') and part.inline_data:
+                                audio_data = part.inline_data.data
+                                if audio_data.startswith(b'RIFF'):
+                                    audio_data = audio_data[44:]
 
-        except Exception as e:
-            print(f"Gemini Cloud TTS error: {e}")
-            import traceback
-            traceback.print_exc()
+                                chunk_size = 4096
+                                for i in range(0, len(audio_data), chunk_size):
+                                    self.chunk_queue.put(audio_data[i:i + chunk_size])
+
+                                print(f"DEBUG: Received {len(audio_data)} bytes from Gemini.")
+                                play_thread = threading.Thread(target=self._play_worker, daemon=True)
+                                play_thread.start()
+                                success = True
+                                break  # Break from model loop on success
+                            else:
+                                print(f"DEBUG: Response part does not contain inline_data. Part: {part}")
+                        else:
+                            print(f"DEBUG: No valid candidates in Gemini response. Response: {response}")
+
+                    except Exception as e:
+                        print(f"Gemini TTS error with model {model_id}: {e}")
+                        if "API key not valid" in str(e) or "401" in str(e):
+                            print("DEBUG: API key is invalid. Rotating key immediately.")
+                            break  # Break from model loop to rotate key
+
+                    # If no success or key error, advance to the next model for the current key
+                    print("DEBUG: Advancing to next model.")
+                    tts_manager.advance_model()
+
+                if success:
+                    break  # Break from key loop on success
+
+                # If the model loop finished without success, advance the key
+                print("DEBUG: All models failed for the current key. Advancing to next key.")
+                tts_manager.advance_key()
+
+            if not success:
+                print("ERROR: All Gemini API keys and models failed.")
+
         finally:
-            # We must wait for the playback to finish before releasing the lock or changing status
             if play_thread:
-                # Signal the worker that no more data is coming (after it drains the queue)
-                self.is_playing = False 
+                self.is_playing = False
                 play_thread.join()
                 print("DEBUG: Gemini audio playback finished.")
             else:
