@@ -106,13 +106,49 @@ class ScreenBanterApp:
 
         print("Starting TTS server...")
         
-        # Check if we are running in a frozen bundle (Nuitka/PyInstaller)
-        if getattr(sys, 'frozen', False):
-            # If frozen, we spawn ourselves with the --server flag
-            cmd = [sys.executable, "--server"]
+        cmd = []
+        cwd = None
+        
+        # 1. Check for External Engine Config
+        local_tts_path = settings_manager.get("audio", "local_tts_path")
+        
+        if local_tts_path and os.path.exists(local_tts_path):
+            print(f"DEBUG: Using External Engine at {local_tts_path}")
+            
+            filename = os.path.basename(local_tts_path).lower()
+            if "python" in filename:
+                # Assume it's a python interpreter in a venv
+                # Try to find the project root (where server/tts_server.py is)
+                candidate_dir = os.path.dirname(local_tts_path) # e.g. .venv/Scripts
+                
+                # Walk up looking for 'server' folder
+                found_root = False
+                for _ in range(3):
+                    if os.path.exists(os.path.join(candidate_dir, "server", "tts_server.py")):
+                        cwd = candidate_dir
+                        found_root = True
+                        break
+                    candidate_dir = os.path.dirname(candidate_dir)
+                
+                if not found_root:
+                    print("WARNING: Could not detect project root for external python. using executable dir.")
+                    cwd = os.path.dirname(local_tts_path)
+                    
+                cmd = [local_tts_path, "-m", "uvicorn", "server.tts_server:app", "--port", "8000"]
+            else:
+                # Batch file or other executable
+                cmd = [local_tts_path]
+                cwd = os.path.dirname(local_tts_path)
+                
         else:
-            # Development mode: use current python environment directly
-            cmd = [sys.executable, "-m", "uvicorn", "server.tts_server:app", "--port", "8000"]
+            # 2. Fallback to Internal / Dev Mode
+            # Check if we are running in a frozen bundle (Nuitka/PyInstaller)
+            if getattr(sys, 'frozen', False):
+                # If frozen, we spawn ourselves with the --server flag
+                cmd = [sys.executable, "--server"]
+            else:
+                # Development mode: use current python environment directly
+                cmd = [sys.executable, "-m", "uvicorn", "server.tts_server:app", "--port", "8000"]
 
         try:
             # Redirect logs to files for debugging
@@ -135,12 +171,17 @@ class ScreenBanterApp:
                 server_env["LOAD_IN_4BIT"] = "false"
                 print(f"DEBUG: Launching Server with LOAD_IN_4BIT=false (Mode: {perf_enabled}, Quant: {quant_mode})")
 
+            print(f"DEBUG: Launch Command: {cmd}")
+            if cwd:
+                print(f"DEBUG: Working Directory: {cwd}")
+
             self.server_process = subprocess.Popen(
                 cmd, 
                 stdout=self.stdout_log, 
                 stderr=self.stderr_log,
                 creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,
-                env=server_env
+                env=server_env,
+                cwd=cwd
             )
             
             print("Waiting for TTS server to be ready...")

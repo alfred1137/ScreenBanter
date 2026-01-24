@@ -17,7 +17,8 @@ class SettingsManager:
             "buffer_seconds": 4.0,
             "playback_mode": "stream",
             "cloud_model": "gemini-2.5-flash-preview-tts",
-            "cloud_voice": "Puck"
+            "cloud_voice": "Puck",
+            "local_tts_path": ""
         },
         "capture": {
             "use_region": True,
@@ -96,9 +97,16 @@ class SettingsManager:
 
     def is_local_tts_supported(self) -> bool:
         """
-        Checks if the local TTS engine (VibeVoice) is supported by checking
-        for the presence of major dependencies like torch, fastapi, and uvicorn.
+        Checks if the local TTS engine (VibeVoice) is supported.
+        1. Checks if 'local_tts_path' points to a valid external engine.
+        2. Fallback: Checks for local dependencies (torch, etc.) for dev/full builds.
         """
+        # 1. External Engine Check
+        local_path = self.get("audio", "local_tts_path")
+        if local_path and os.path.exists(local_path):
+            return True
+
+        # 2. Internal/Dev Environment Check
         try:
             import torch
             import fastapi

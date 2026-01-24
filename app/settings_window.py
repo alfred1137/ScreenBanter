@@ -1,6 +1,7 @@
 import customtkinter as ctk
 import requests
 import threading
+from tkinter import filedialog
 from .settings import settings_manager
 from .region_selector import RegionSelector
 
@@ -221,11 +222,33 @@ class SettingsWindow(ctk.CTkToplevel):
 
         provider = self.provider_var.get()
         if provider == "local":
+            # --- External Path Selection ---
+            ctk.CTkLabel(self.provider_container, text="External TTS Engine Path:").grid(row=0, column=0, padx=10, pady=(5, 0), sticky="w")
+            
+            path_frame = ctk.CTkFrame(self.provider_container, fg_color="transparent")
+            path_frame.grid(row=1, column=0, sticky="ew", padx=10, pady=5)
+            
+            self.local_path_entry = ctk.CTkEntry(path_frame, width=200)
+            self.local_path_entry.pack(side="left", fill="x", expand=True, padx=(0, 5))
+            current_path = settings_manager.get("audio", "local_tts_path") or ""
+            self.local_path_entry.insert(0, current_path)
+            
+            browse_btn = ctk.CTkButton(path_frame, text="Browse", width=60, command=self.select_local_path)
+            browse_btn.pack(side="right")
+
+            hint_text = "Select 'python.exe' or 'run_server.bat' in your VibeVoice folder."
+            if not current_path:
+                hint_text = "⚠️ Config Required! " + hint_text
+            
+            ctk.CTkLabel(self.provider_container, text=hint_text, 
+                         font=ctk.CTkFont(size=10, slant="italic"), text_color="gray" if current_path else "#FF5555").grid(row=2, column=0, padx=10, pady=(0, 10), sticky="w")
+
+            # --- Voice Selection ---
             voice_label = ctk.CTkLabel(self.provider_container, text="Local Voice Preset:")
-            voice_label.grid(row=0, column=0, padx=10, pady=5, sticky="w")
+            voice_label.grid(row=3, column=0, padx=10, pady=5, sticky="w")
 
             self.voice_option = ctk.CTkOptionMenu(self.provider_container, values=["Loading..."], command=self.save_audio_local)
-            self.voice_option.grid(row=1, column=0, padx=10, pady=5, sticky="w")
+            self.voice_option.grid(row=4, column=0, padx=10, pady=5, sticky="w")
             self.voice_option.set(settings_manager.get("audio", "voice_key"))
 
             # Fetch voices from server in background
@@ -257,6 +280,18 @@ class SettingsWindow(ctk.CTkToplevel):
 
             self.cloud_model_entry.bind("<FocusOut>", lambda e: self.save_audio_cloud())
             self.cloud_model_entry.bind("<Return>", lambda e: self.save_audio_cloud())
+
+    def select_local_path(self):
+        filename = filedialog.askopenfilename(
+            title="Select External TTS Engine Executable",
+            filetypes=[("Executables", "*.exe;*.bat;*.cmd;*.sh"), ("All Files", "*.*")]
+        )
+        if filename:
+            self.local_path_entry.delete(0, "end")
+            self.local_path_entry.insert(0, filename)
+            settings_manager.set("audio", "local_tts_path", filename)
+            # Refresh to update hints/colors
+            self.show_provider_settings()
 
     def save_audio_local(self, selected_voice):
         settings_manager.set("audio", "voice_key", selected_voice)
