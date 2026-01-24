@@ -8,18 +8,13 @@ on:
 
 jobs:
   build:
-    name: Build ${{ matrix.build_type }}
+    name: Build Windows Executable
     runs-on: windows-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        build_type: [lite, full]
-    
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
-          lfs: ${{ matrix.build_type == 'full' }}
+          lfs: false
           submodules: recursive
 
       - name: Increase Pagefile (Avoid OOM)
@@ -53,20 +48,10 @@ jobs:
         with:
           python-version-file: ".python-version"
 
-      - name: Install Dependencies (Lite)
-        if: matrix.build_type == 'lite'
+      - name: Install Dependencies
         run: uv sync
 
-      - name: Install Dependencies (Full)
-        if: matrix.build_type == 'full'
-        run: uv sync --extra local-tts
-
-      - name: Build Executable (Lite)
-        if: matrix.build_type == 'lite'
-        run: uv run python build_release.py --lite
-
-      - name: Build Executable (Full)
-        if: matrix.build_type == 'full'
+      - name: Build Executable
         run: uv run python build_release.py
 
       - name: Create Release Zip
@@ -74,8 +59,7 @@ jobs:
         run: |
           # Robust version extraction from pyproject.toml
           $Version = (Select-String -Path pyproject.toml -Pattern 'version = "(.*)"').Matches.Groups[1].Value
-          $Type = "${{ matrix.build_type }}".SubString(0,1).ToUpper() + "${{ matrix.build_type }}".SubString(1).ToLower()
-          $FolderName = "ScreenBanter_${Type}_v$Version"
+          $FolderName = "ScreenBanter_v$Version"
           
           Write-Host "Zipping dist/$FolderName..."
           Compress-Archive -Path "dist/$FolderName" -DestinationPath "${FolderName}.zip"
@@ -83,6 +67,6 @@ jobs:
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ScreenBanter_${{ matrix.build_type }}_${{ github.ref_name }}
+          name: ScreenBanter_${{ github.ref_name }}
           path: "*.zip"
           retention-days: 5

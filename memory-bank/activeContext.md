@@ -3,13 +3,27 @@
 **Current Work Focus:** Implementing Cloud TTS option via Gemini API and preparing v0.1.0 release.
 
 **Recent Changes:**
+- **Build System Refactor (v0.3.0)**:
+    - **Deprecated "Full" Build**: Removed monolithic build logic to resolve CI memory limits (C1002) and eliminate LFS bandwidth costs.
+    - **Lite-Only Artifact**: `build_release.py` now exclusively produces the lightweight client (~100MB) with Cloud TTS support.
+    - **Workflow Simplification**: Removed matrix strategy from GitHub Actions, streamlining the release process to a single job.
+- **Build System Stabilization (v0.2.x)**:
+    - **CI Failure Resolution**: Replaced Linux-centric swap space actions with a native PowerShell script to manage the Windows Pagefile (12GB) on GitHub Actions runners.
+    - **C1002 Heap Error Fix**: Implemented Nuitka's `--low-memory` flag in `build_release.py` to prevent MSVC compiler heap exhaustion during large file compilation.
+    - **Code Cleanup**: Resolved `IndentationError` and logic issues in `build_release.py`.
+    - **Dynamic Artifacts**: Updated `build.yml` to use release tags for dynamic zip and artifact naming.
 - **Cloud TTS Support (2026-01-20)**:
-    - Implemented `tts_provider` setting (Local vs. Gemini Cloud).
-    - Integrated Gemini TTS in `AudioClient` using `google-genai` SDK.
-    - Updated `ScreenBanterApp` to skip local TTS server startup if Gemini Cloud is selected.
-    - Added cloud-specific settings: `cloud_model` (`gemini-2.5-flash-preview-tts`) and `cloud_voice` (`Puck`).
-    - Fixed `AttributeError` in `AudioClient` by correctly mapping the response structure for native speech generation.
-    - Made `AudioClient` thread-safe with a lock to prevent concurrent narration overlap.
+    - Fully implemented Gemini 2.5 Flash Preview TTS with 30+ voice options.
+    - Fixed `AttributeError` in Gemini response parsing and added WAV header stripping for clean PCM playback.
+    - Serialized narration in `AudioClient` with a thread lock to prevent overlapping speech.
+- **Gemini TTS Rotation Strategy (2026-01-22)**:
+    - Implemented `KeyAndModelManager` in `app/tts_manager.py` for resilient API usage.
+    - Added support for multiple API keys via `GEMINI_KEYS` environment variable.
+    - Implemented a layered rotation strategy:
+        1. **Model Rotation**: Retries with alternative models (e.g., `gemini-2.5-flash-native-audio-preview-12-2025`) on generic failures.
+        2. **Key Rotation**: Immediately rotates to the next API key on 401/Invalid Key errors or when all models for a key have failed.
+    - Updated `.env.example` with placeholders for multiple keys.
+    - Verified with both simulated failure tests and real-world API validation.
 - **Lite vs Full Packaging (2026-01-20)**:
     - Moved `uvicorn`, `fastapi`, `torch`, and other heavy ML deps to `optional-dependencies` in `pyproject.toml`.
     - Updated `build_release.py` to support `--lite` and `--full` (default) builds.
@@ -34,16 +48,16 @@
     - Refactored `app/main.py` to use a dedicated GUI thread for the HUD, which now manages the Settings window as a Toplevel.
     - Wired HUD to display real-time OCR status ("Scanning", "Thinking", "Speaking") and extracted text.
 
-**Planned Changes (Issue #15):**
-- **Cloud TTS Support**:
-    - Add `tts_provider` setting (Local vs. Gemini Cloud).
-    - Implement Gemini TTS integration in `AudioClient` using `google-genai` SDK.
-    - Allow skipping local TTS server startup if Gemini Cloud is selected.
-    - Add cloud-specific settings: `cloud_model` and `cloud_voice`.
+## Current Focus
+- **Decoupling Local TTS**: Shifting from a monolithic "Full" build to a "Bring Your Own Engine" model to bypass GitHub LFS limits and reduce distribution size.
+- **Documentation**: Finalizing instructions for the new modular setup.
 
-**Next Steps:**
-1.  **Verification**: Conduct a final end-to-end integration test with both local and cloud providers.
-2.  **Release**: Tag `v0.1.0` and trigger the build workflow.
+## Next Steps
+- [x] **Code**: Remove "Full" build logic from `build_release.py` and GitHub Actions.
+- [ ] **Feature**: Add `local_tts_path` setting and detection logic to `app/settings.py` and `app/main.py`.
+- [ ] **Feature**: Implement `ExternalServerManager` to launch the TTS server from a user-provided path.
+- [ ] **Docs**: Create `docs/setup_local_tts.md` guide for users to set up the VibeVoice environment manually.
+- [ ] **Release**: Tag `v0.3.0` with the new architecture.
 
 **Active Decisions and Considerations:**
 - **Model Selection**: 

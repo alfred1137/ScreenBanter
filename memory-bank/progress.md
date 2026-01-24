@@ -3,6 +3,10 @@
 **Overall Status:** Feature Complete. Performance Mode and HUD implemented. Ready for v0.1.0 release.
 
 **Completed:**
+- **Gemini TTS Rotation Strategy**:
+    - Implemented `KeyAndModelManager` for multi-key and multi-model failover.
+    - Verified logic with simulated and real API tests.
+    - Updated configuration documentation (`.env.example`).
 - **Performance Mode**:
     - Implemented Master Toggle in Settings.
     - Integrated `bitsandbytes` 4-bit quantization (Backend + Frontend logic).
@@ -46,13 +50,23 @@
     - Implemented **GitHub Actions** (`.github/workflows/build.yml`) for automated builds.
     - Verified build fix for Issue #6 (memory-constrained runner fix).
 
-**Remaining:**
-- **[Deployment]** Create release tag (`v0.1.0`).
-- **[Testing]** User validation of Performance Mode impact on frame rates.
-- **[Optimization]** Pseudo-streaming for Cloud TTS (Long text handling).
+### Milestone 3: Packaging & Optimization (v0.2.0)
+- [x] Matrix build workflow (Lite vs Full).
+- [x] Windows Pagefile management in CI (Native PowerShell).
+- [x] Nuitka `--low-memory` optimization for heap issues.
+- [x] Dynamic artifact naming via release tags.
+- [x] Cloud TTS integration (Gemini 2.5 Flash Preview).
+- [x] Thread-safe narration serialization.
 
-**In Progress:**
-- Finalizing release documentation.
+
+**Remaining:**
+- **[Optimization]** Pseudo-streaming for Cloud TTS (Long text handling).
+- **[Refactor]** Decouple Local TTS (LFS Removal):
+    - [ ] Update build system to produce only "Lite" artifact.
+    - [ ] Implement external engine detection/launching.
+    - [ ] Write "Bring Your Own Engine" user guide.
+- **[Documentation]** Finalize README and release notes for v0.2.0.
+
 
 **Known Issues:**
 - Nuitka build time is significant (20-40 mins), and now likely longer with `--jobs=1` but should be stable.
