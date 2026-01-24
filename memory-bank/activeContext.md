@@ -54,8 +54,8 @@
 
 ## Next Steps
 - [x] **Code**: Remove "Full" build logic from `build_release.py` and GitHub Actions.
-- [ ] **Feature**: Add `local_tts_path` setting and detection logic to `app/settings.py` and `app/main.py`.
-- [ ] **Feature**: Implement `ExternalServerManager` to launch the TTS server from a user-provided path.
+- [x] **Feature**: Add `local_tts_path` setting and detection logic to `app/settings.py` and `app/main.py`.
+- [x] **Feature**: Implement `ExternalServerManager` (integrated into `main.py`) to launch the TTS server from a user-provided path.
 - [ ] **Docs**: Create `docs/setup_local_tts.md` guide for users to set up the VibeVoice environment manually.
 - [ ] **Release**: Tag `v0.3.0` with the new architecture.
 
