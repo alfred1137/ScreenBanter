@@ -32,19 +32,17 @@ Supports 30 native voices configurable via `voice_name`:
 
 **Key Dependencies & Constraints:**
 - **Transformers:** Pinned to `4.51.3` to ensure compatibility with VibeVoice's specific internal logic.
-- **PyTorch:** Must be the CUDA-enabled version (Full version only).
-- **Lite vs Full Split:**
-    - **Lite Version:** Cloud-only (Gemini TTS). Excludes `torch`, `transformers`, `fastapi`, `uvicorn`, and local models. Significantly smaller package size.
-    - **Full Version:** Includes Local TTS (VibeVoice) support with all heavy ML dependencies and model weights.
+- **PyTorch:** Must be the CUDA-enabled version (Required for Local TTS Engine).
+- **Deployment Models:**
+    - **Lite Client (Standard):** The default distribution. Cloud-only dependencies. Excludes `torch`, `transformers`, `fastapi`, and model weights to keep the package small (~100MB).
+    - **Local TTS (BYOE):** Local VibeVoice support is achieved via a "Bring Your Own Engine" model. Users configure a `local_tts_path` pointing to an external Python environment or executable hosting the server logic.
 
 **Tool Usage Patterns:**
 - **Run App:** `uv run python -m app.main`
-- **Install for Lite:** `uv sync` (default)
-- **Install for Full:** `uv sync --extra local-tts`
-- **Build Lite:** `python build_release.py --lite`
-- **Build Full:** `python build_release.py`
-- **Run Server Mode:** `uv run python -m app.main --server` (Used for packaged bundles, Full only)
-- **Run Server (Debug):** `uv run uvicorn server.tts_server:app --port 8000` (Full only)
+- **Install for Lite (Cloud only):** `uv sync` (default)
+- **Install for Local Dev:** `uv sync --extra local-tts`
+- **Build Release:** `python build_release.py` (Produces Lite Client)
+- **Run Server (Debug):** `uv run uvicorn server.tts_server:app --port 8000` (Requires `local-tts` extras)
 
 **Project Structure:**
 - The project is logically split into a **Frontend Daemon** (`app/`) and an **Inference Server** (`server/`).
