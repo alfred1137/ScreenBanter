@@ -78,12 +78,14 @@
 <a id="overview"></a>
 ## 📖 Overview
 
-ScreenBanter is an amateur project that marries **Google’s Gemini Vision** (for high-speed OCR) and the new **Gemini 2.5 Flash Preview TTS** (for cloud audio) with **Microsoft’s VibeVoice-0.5B** (for local neural TTS) to provide real-time desktop narration. It features capture-to-speech and an intelligent multi-screenshot queuing system.
+ScreenBanter is an amateur project that marries **Google’s Gemini Vision** (for high-speed OCR) and the new **Gemini 2.5 Flash Preview TTS** (for cloud audio) to provide real-time desktop narration. 
+
+**New in v0.3.0:** The application is now distributed as a lightweight **Lite Client** (~100MB) with Cloud TTS support out-of-the-box. Local neural TTS (via **Microsoft VibeVoice-0.5B**) is fully supported through a **"Bring Your Own Engine" (BYOE)** model, allowing power users to host their own inference server.
 
 ### 🌟 Key Features
-*   **Dual-Engine TTS:** Choose between **Microsoft VibeVoice** (Local, Private, Low Latency) or **Gemini Cloud TTS** (High Quality, Low CPU usage) via `gemini-2.5-flash-preview-tts`.
+*   **Cloud TTS (Default):** High-quality, low-latency narration using **Gemini 2.5 Flash Preview** (`gemini-2.5-flash-preview-tts`) with 30+ native voices. Zero local GPU load.
+*   **Local TTS (BYOE):** Connect to your own local **VibeVoice** instance for private, offline, neural speech generation.
 *   **Smart Vision:** Uses **Gemini 2.5 Flash Lite** (`models/gemini-flash-lite-latest`) via Gemini API for intelligent text extraction and context-aware merging of multiple screenshots.
-*   **Low-latency local TTS:** Powered by VibeVoice for high-quality audio without relying on cloud TTS credits.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -91,20 +93,25 @@ ScreenBanter is an amateur project that marries **Google’s Gemini Vision** (fo
 <a id="installation-setup"></a>
 ## 🚀 Installation & Setup
 
-### 📥 Download (Standalone Windows)
+### 📥 Download (Lite Client)
 The easiest way to use ScreenBanter is to download the latest pre-compiled build:
 1. Go to the **[GitHub Actions](https://github.com/alfred1137/ScreenBanter/actions)** tab.
-2. Select the latest successful **"Build Standalone Windows Executable"** run.
+2. Select the latest successful **"Build Windows Executable"** run.
 3. Scroll down to **Artifacts** and download `ScreenBanter_Windows_Executable`.
 4. Extract the ZIP, create a `.env` file with your `GEMINI_KEY`, and run `ScreenBanter.exe`.
 
-### ✅ Requirements (For Developers)
-*   **OS:** Windows 10/11 (Required for `DXcam` and Win32 tray integration).
-*   **GPU:** NVIDIA GPU with CUDA 12.1 support (Highly recommended for VibeVoice latency).
-*   **Build Tools:** [Microsoft Visual C++ Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) (Required for `pyaudio` and `pystray`).
-*   **Package Manager:** [uv](https://github.com/astral-sh/uv) (Recommended).
+### ✅ Requirements
 
-### Installation
+**Lite Client (Cloud Only)**
+*   **OS:** Windows 10/11 (Required for `DXcam` and Win32 tray integration).
+*   **Internet:** Active connection for Gemini API.
+
+**Local TTS Engine (Optional)**
+*   **GPU:** NVIDIA GPU with CUDA 12.1 support (RTX 3060+ recommended).
+*   **Python:** 3.10+ installed.
+*   **Git:** Installed.
+
+### Installation (Source)
 
 1.  **Clone the Repository**
     ```sh
@@ -119,12 +126,19 @@ The easiest way to use ScreenBanter is to download the latest pre-compiled build
     ```
     Edit `.env` and add your **GEMINI_KEY** from [Google AI Studio](https://aistudio.google.com/).
 
-3.  **Install Dependencies**
+3.  **Install Dependencies (Lite)**
     Using `uv`:
     ```sh
     uv sync
     ```
-    *Note: The project pins `transformers` to 4.51.3 to maintain compatibility with VibeVoice.*
+
+4.  **Optional: Setup Local TTS**
+    To use VibeVoice locally, follow the **[Local TTS Setup Guide](docs/setup_local_tts.md)**.
+    
+    *If developing locally:*
+    ```sh
+    uv sync --extra local-tts
+    ```
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -133,7 +147,7 @@ The easiest way to use ScreenBanter is to download the latest pre-compiled build
 ## 🛠️ Usage
 
 **1. Launch the Application**
-Starts the system tray app and the background TTS server.
+Starts the system tray app.
 ```sh
 uv run python -m app.main
 ```
@@ -163,7 +177,9 @@ ScreenBanter features a non-intrusive **HUD** that appears automatically during 
 Access settings by right-clicking the **Loudspeaker icon** in the system tray.
 
 *   **Hotkeys:** Rebind any action to your preferred key combinations.
-*   **Audio:** Select from multiple VibeVoice presets (e.g., `en-Davis_man`, `en-Emma_woman`). Adjust volume and playback speed.
+*   **Audio:** 
+    *   **Cloud:** Select Gemini Model and Voice (e.g., `Puck`, `Kore`).
+    *   **Local:** Configure external engine path and select VibeVoice presets.
 *   **Capture Mode:** Toggle between `Fullscreen` and `Region`. In Region mode, use the interactive selector to define your capture area.
 *   **HUD / UI:** Toggle the Banter HUD, adjust opacity, and configure focus behavior (Immersive vs. Focus mode).
 *   **Performance:** Configure "Process Priority" and "Playback Buffer" to optimize for your hardware.
@@ -184,12 +200,12 @@ ScreenBanter/
 │   ├── settings.py       # Configuration management
 │   ├── settings_window.py# CustomTkinter Settings GUI
 │   └── region_selector.py# Transparent overlay for region selection
-├── server/               # Local Inference Server
-│   ├── tts_server.py     # FastAPI application
-│   └── model_loader.py   # VibeVoice initialization & dynamic voice loading
-├── scripts/              # Testing & Utility scripts
-├── models/               # (Local) VibeVoice model weights
-└── third_party/          # VibeVoice source code & assets
+├── server/               # Local Inference Server Logic
+│   ├── tts_server.py     # FastAPI application (for local dev/BYOE)
+│   └── model_loader.py   # VibeVoice initialization
+├── docs/                 # Documentation
+│   └── setup_local_tts.md# Guide for external engine setup
+├── third_party/          # VibeVoice source code (submodule)
 ```
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
@@ -203,15 +219,15 @@ graph TD
     User[User] -->|Hotkey| Trigger[Capture Trigger]
     Trigger -->|DXcam| Capture[Screen/Region Capture]
     Capture -->|Image Data| Vision[Gemini Vision Engine]
-    Vision -->|Extracted Text| Server[FastAPI Inference Server]
-    Server -->|VibeVoice TTS| Audio[Audio Stream]
-    Audio -->|PyAudio| Speakers[User Speakers]
+    Vision -->|Extracted Text| Client[Audio Client]
     
-    Tray[Tray Icon] -->|Settings| GUI[Settings GUI]
-    GUI <-->|JSON| Config[settings.json]
-    Config -.->|Applies to| Trigger
-    Config -.->|Applies to| Audio
-    Config -.->|Applies to| Server
+    Client -->|Option A: API| Cloud[Gemini Cloud TTS]
+    Client -->|Option B: Subprocess| Local[External VibeVoice Server]
+    
+    Cloud -->|Audio Bytes| Playback[PyAudio Stream]
+    Local -->|Audio Bytes| Playback
+    
+    Playback -->|Sound| Speakers[User Speakers]
 ```
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
@@ -224,9 +240,10 @@ graph TD
 - [x] Batch Mode (Queueing)
 - [x] Custom Region Capture
 - [x] Settings GUI (Modern UI)
-- [x] Local Neural TTS Integration
+- [x] Local Neural TTS Integration (BYOE)
+- [x] Cloud TTS (Gemini) Integration
 - [x] Dynamic Voice/Device Selection
-- [x] Standalone Executable Build (.exe)
+- [x] Standalone "Lite" Client Build
 
 See the [open issues](https://github.com/alfred1137/ScreenBanter/issues) for a full list of proposed features.
 
@@ -281,6 +298,7 @@ Project Link: [https://github.com/alfred1137/ScreenBanter](https://github.com/al
 <a id="changelog"></a>
 ## 📝 Changelog
 
+*   **2026-01-24**: Refactored to **Lite Client** architecture (v0.3.0). Introduced **"Bring Your Own Engine"** support for Local TTS to reduce installer size and LFS usage.
 *   **2026-01-20**: Verified full integration workflow (HUD, 4-bit TTS, Region Capture) on Windows 11 with CUDA 12.1.
 *   **2026-01-16**: Added **Performance Mode** (4-bit quantization, priority boosting) and **Banter HUD** for seamless gaming integration.
 *   **2026-01-14**: Enhanced documentation, added Region Capture and Settings GUI polish.
