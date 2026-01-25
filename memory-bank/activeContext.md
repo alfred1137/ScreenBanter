@@ -1,8 +1,10 @@
 # Active Context: ScreenBanter
 
-**Current Work Focus:** Finalizing v0.3.0 "Lite Client" release and ensuring build stability.
+**Current Work Focus:** Finalizing v0.3.5 cleanup and preparing for next feature set.
 
 **Recent Changes:**
+- **Version Synchronization (v0.3.5)**: Updated `pyproject.toml` and `uv.lock` to match the release tag `v0.3.5`.
+- **Build Tool Cleanup**: Removed Nuitka from dev dependencies as PyInstaller is now the primary build tool.
 - **Build System Migration (v0.3.3)**:
     - **Switched to PyInstaller**: Migrated from Nuitka to PyInstaller to resolve persistent `C1002` (Out of Heap Space) errors caused by the massive `google-genai` C-code generation.
     - **Optimized Configuration**: Implemented `ScreenBanter.spec` for precise dependency management and hidden import handling.

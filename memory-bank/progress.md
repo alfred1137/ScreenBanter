@@ -1,8 +1,11 @@
 # Progress: ScreenBanter
 
-**Overall Status:** Feature Complete. Performance Mode and HUD implemented. Ready for v0.1.0 release.
+**Overall Status:** Feature Complete. v0.3.5 released with stable PyInstaller build.
 
 **Completed:**
+- **Build System Finalization (v0.3.5)**:
+    - Synchronized `pyproject.toml` version.
+    - Removed legacy Nuitka dependencies.
 - **Gemini TTS Rotation Strategy**:
     - Implemented `KeyAndModelManager` for multi-key and multi-model failover.
     - Verified logic with simulated and real API tests.

@@ -1,6 +1,6 @@
 [project]
 name = "screenbanter"
-version = "0.1.0"
+version = "0.3.5"
 description = "Make your screen talk back. A DIY project built with VIBES to bridge Google’s Gemini Vision with Microsoft’s VibeVoice-0.5B for real-time desktop narration."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -49,6 +49,5 @@ dev = [
     "mypy",
     "pytest",
     "pre-commit",
-    "nuitka>=2.8.9",
     "pyinstaller>=6.11.1",
 ]

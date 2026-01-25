@@ -5676,7 +5676,7 @@ wheels = [
 
 [[package]]
 name = "screenbanter"
-version = "0.1.0"
+version = "0.3.5"
 source = { virtual = "." }
 dependencies = [
     { name = "customtkinter" },
@@ -5697,7 +5697,6 @@ dependencies = [
 dev = [
     { name = "black" },
     { name = "mypy" },
-    { name = "nuitka" },
     { name = "pre-commit" },
     { name = "pyinstaller" },
     { name = "pytest" },
@@ -5744,7 +5743,6 @@ requires-dist = [
     { name = "ml-collections", marker = "extra == 'local-tts'" },
     { name = "mypy", marker = "extra == 'dev'" },
     { name = "nuitka" },
-    { name = "nuitka", marker = "extra == 'dev'", specifier = ">=2.8.9" },
     { name = "numba", marker = "extra == 'local-tts'", specifier = ">=0.57.0" },
     { name = "numpy" },
     { name = "pillow" },
