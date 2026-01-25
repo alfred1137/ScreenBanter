@@ -17,26 +17,6 @@ jobs:
           lfs: false
           submodules: recursive
 
-      - name: Increase Pagefile (Avoid OOM)
-        shell: pwsh
-        run: |
-          # Disable automatic page file management
-          $ComputerSystem = Get-CimInstance Win32_ComputerSystem
-          Set-CimInstance -CimInstance $ComputerSystem -Property @{AutomaticManagedPagefile = $False}
-
-          # Create or Update Pagefile to 12GB
-          $PagefilePath = "C:\pagefile.sys"
-          $SizeInMB = 12288 # 12GB
-          
-          $CurrentPagefile = Get-CimInstance Win32_PageFileSetting | Where-Object { $_.Name -eq $PagefilePath }
-          if ($null -eq $CurrentPagefile) {
-              New-CimInstance -ClassName Win32_PageFileSetting -Property @{Name=$PagefilePath; InitialSize=$SizeInMB; MaximumSize=$SizeInMB}
-          } else {
-              Set-CimInstance -CimInstance $CurrentPagefile -Property @{InitialSize=$SizeInMB; MaximumSize=$SizeInMB}
-          }
-
-          Write-Host "Pagefile settings configured to 12GB."
-
       - name: Install uv
         uses: astral-sh/setup-uv@v5
         with:
@@ -53,17 +33,6 @@ jobs:
 
       - name: Build Executable
         run: uv run python build_release.py
-        env:
-          _CL_: "/Zm2000"
-
-      - name: Upload Nuitka Crash Report (on Failure)
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: nuitka-crash-report
-          path: |
-            nuitka-crash-report.xml
-            logs/*.log
 
       - name: Create Release Zip
         shell: pwsh

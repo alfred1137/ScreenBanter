@@ -52,9 +52,8 @@
 
 ### Milestone 3: Packaging & Optimization (v0.3.x)
 - [x] Matrix build workflow (Lite vs Full) - *Deprecated in favor of Lite-only*.
-- [x] Windows Pagefile management in CI (Native PowerShell).
-- [x] Nuitka `--low-memory` and `--jobs=1` optimization.
-- [x] **C1002 Fix**: Increased MSVC heap space and optimized selective compilation.
+- [x] Windows Pagefile management in CI (Native PowerShell) - *Removed, no longer needed for PyInstaller*.
+- [x] **PyInstaller Migration**: Switched from Nuitka to resolve OOM issues.
 - [x] Dynamic artifact naming via release tags.
 - [x] Cloud TTS integration (Gemini 2.5 Flash Preview).
 - [x] Thread-safe narration serialization.

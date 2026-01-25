@@ -298,7 +298,7 @@ Project Link: [https://github.com/alfred1137/ScreenBanter](https://github.com/al
 <a id="changelog"></a>
 ## 📝 Changelog
 
-*   **2026-01-25**: Optimized **Nuitka** build process and resolved MSVC `C1002` heap errors. (v0.3.2)
+*   **2026-01-25**: Migrated build system to **PyInstaller** for superior stability on CI. Resolved persistent memory exhaustion issues with `google-genai`. (v0.3.3)
 *   **2026-01-24**: Refactored to **Lite Client** architecture (v0.3.0).
 *   **2026-01-20**: Verified full integration workflow (HUD, 4-bit TTS, Region Capture) on Windows 11 with CUDA 12.1.
 *   **2026-01-16**: Added **Performance Mode** (4-bit quantization, priority boosting) and **Banter HUD** for seamless gaming integration.
