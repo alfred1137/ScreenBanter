@@ -1,8 +1,13 @@
 # Active Context: ScreenBanter
 
-**Current Work Focus:** Implementing Cloud TTS option via Gemini API and preparing v0.1.0 release.
+**Current Work Focus:** Finalizing v0.3.0 "Lite Client" release and ensuring build stability.
 
 **Recent Changes:**
+- **Build System Optimization (v0.3.1)**:
+    - **C1002 Resolution**: Resolved the persistent MSVC "out of heap space" error by setting `_CL_=/Zm2000` to increase compiler memory.
+    - **Selective Compilation**: Optimized `build_release.py` to remove broad `--include-package=google` and instead use Nuitka's natural import following, preventing compilation of unnecessary types.
+    - **Plugin Utilization**: Leveraged Nuitka's native `numpy` and `tk-inter` plugins for better dependency management.
+    - **CI Debugging**: Enhanced GitHub Actions to capture Nuitka crash reports as artifacts.
 - **Build System Refactor (v0.3.0)**:
     - **Deprecated "Full" Build**: Removed monolithic build logic to resolve CI memory limits (C1002) and eliminate LFS bandwidth costs.
     - **Lite-Only Artifact**: `build_release.py` now exclusively produces the lightweight client (~100MB) with Cloud TTS support.

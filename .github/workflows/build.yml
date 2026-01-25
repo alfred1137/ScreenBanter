@@ -53,9 +53,17 @@ jobs:
 
       - name: Build Executable
         run: uv run python build_release.py
+        env:
+          _CL_: "/Zm2000"
 
-      - name: Create Release Zip
-        shell: pwsh
+      - name: Upload Nuitka Crash Report (on Failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nuitka-crash-report
+          path: |
+            nuitka-crash-report.xml
+            logs/*.log
         run: |
           # Robust version extraction from pyproject.toml
           $Version = (Select-String -Path pyproject.toml -Pattern 'version = "(.*)"').Matches.Groups[1].Value

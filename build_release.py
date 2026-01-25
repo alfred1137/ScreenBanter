@@ -29,6 +29,9 @@ def build():
 
     # Setup environment
     env = os.environ.copy()
+    # Fix for C1002: compiler is out of heap space. 
+    # Increase MSVC compiler heap space.
+    env["_CL_"] = "/Zm2000"
 
     # Nuitka arguments
     nuitka_cmd = [
@@ -37,21 +40,23 @@ def build():
         "--assume-yes-for-downloads",
         "--jobs=1",
         "--python-flag=no_site",
-        "--low-memory",  # Fix for C1002: compiler is out of heap space
+        "--low-memory",
         # Plugins
         "--enable-plugin=tk-inter",
-        # Core packages (Always included)
+        "--enable-plugin=numpy",
+        # Core packages (Let Nuitka follow these instead of forcing full compilation if possible)
         "--include-package=pystray",
         "--include-package=PIL",
-        "--include-package=numpy",
         "--include-package=customtkinter",
         "--include-package=darkdetect",
         "--include-package=dxcam",
-        "--include-package=google",
         "--include-package=requests",
         "--include-package=pyaudio",
         # Application packages
         "--include-package=app",
+        # Specifically exclude full 'google' package to avoid C1002
+        # Nuitka will follow imports into google.genai naturally.
+        "--follow-imports",
         # Data files
         "--include-data-dir=assets=assets",
         # Output

@@ -298,6 +298,7 @@ Project Link: [https://github.com/alfred1137/ScreenBanter](https://github.com/al
 <a id="changelog"></a>
 ## 📝 Changelog
 
+*   **2026-01-25**: Optimized **Nuitka** build process for improved reliability on CI (GitHub Actions). Resolved memory issues (`C1002`) during compilation of `google-genai` types.
 *   **2026-01-24**: Refactored to **Lite Client** architecture (v0.3.0). Introduced **"Bring Your Own Engine"** support for Local TTS to reduce installer size and LFS usage.
 *   **2026-01-20**: Verified full integration workflow (HUD, 4-bit TTS, Region Capture) on Windows 11 with CUDA 12.1.
 *   **2026-01-16**: Added **Performance Mode** (4-bit quantization, priority boosting) and **Banter HUD** for seamless gaming integration.
