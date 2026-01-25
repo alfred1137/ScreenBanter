@@ -64,6 +64,9 @@ jobs:
           path: |
             nuitka-crash-report.xml
             logs/*.log
+
+      - name: Create Release Zip
+        shell: pwsh
         run: |
           # Robust version extraction from pyproject.toml
           $Version = (Select-String -Path pyproject.toml -Pattern 'version = "(.*)"').Matches.Groups[1].Value
